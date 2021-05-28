@@ -141,6 +141,18 @@ defmodule Board do
     |> Enum.map(fn cell -> update_cell(board, cell) end)
   end
 
+  def draw(board) do
+    board
+    |> Enum.map(fn cell ->
+      if cell.is_active do
+        cell.print_char
+      else
+        "⬜️"
+      end
+    end)
+    |> Enum.chunk_every(5)
+  end
+
   def update_cell(board, cell) do
     case count_neighbours(board, cell) do
       3 -> Map.replace(cell, :is_active, true)
@@ -163,6 +175,9 @@ end
 ```
 
 ```elixir
-board = Board.setup(10, 10, [{1, 1}])
-Board.advance(board)
+board =
+  Board.setup(5, 5, [{3, 2}, {3, 3}, {3, 4}])
+  |> Board.advance()
+  # |> Board.advance()
+  |> Board.draw()
 ```
