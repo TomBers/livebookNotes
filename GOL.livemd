@@ -9,7 +9,6 @@ It allows you to set a starting state and then run the board through n iteration
 The 'game' itself runs on an infinite 2-D board with each cell being either on on or off.
 Each iteration a Cell can change from on to off or stay in its state.
 
-<!-- The rules: #Dfdsfdsfdsfdsfdsffdsfdsfdsfdsfdsdfsfdsfdsfdsnfdsfdsfdsfdsff -->
 
 1. Any live cell with two or three live neighbours survives.
 2. Any dead cell with three live neighbours becomes a live cell.
@@ -141,7 +140,7 @@ defmodule Board do
     |> Enum.map(fn cell -> update_cell(board, cell) end)
   end
 
-  def draw(board) do
+  def draw(board, split) do
     board
     |> Enum.map(fn cell ->
       if cell.is_active do
@@ -150,7 +149,7 @@ defmodule Board do
         "⬜️"
       end
     end)
-    |> Enum.chunk_every(5)
+    |> Enum.chunk_every(split)
   end
 
   def update_cell(board, cell) do
@@ -174,10 +173,21 @@ defmodule Board do
 end
 ```
 
+The below example is what is known as a "Blinker" see [GameofLife](https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life)
+
 ```elixir
 board =
   Board.setup(5, 5, [{3, 2}, {3, 3}, {3, 4}])
   |> Board.advance()
   # |> Board.advance()
-  |> Board.draw()
+  |> Board.draw(5)
+```
+
+Below is an example of a Beacon
+
+```elixir
+Board.setup(6, 6, [{2, 4}, {2, 5}, {3, 4}, {3, 5}, {4, 2}, {4, 3}, {5, 2}, {5, 3}])
+|> Board.advance()
+|> Board.advance()
+|> Board.draw(6)
 ```
