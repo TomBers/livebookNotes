@@ -1,0 +1,94 @@
+# Game of Life
+
+## Whats the Goal?
+
+### Design a Game of life program
+
+It allows you to set a starting state and then run the board through n iterations and print the final state.
+
+The 'game' itself runs on an infinite 2-D board with each cell being either on on or off.
+Each iteration a Cell can change from on to off or stay in its state.
+
+<!-- The rules: #Dfdsfdsfdsfdsfdsffdsfdsfdsfdsfdsdfsfdsfdsfdsnfdsfdsfdsfdsff -->
+
+1. Any live cell with two or three live neighbours survives.
+2. Any dead cell with three live neighbours becomes a live cell.
+3. All other live cells die in the next generation. Similarly, all other dead cells stay dead.
+
+```elixir
+# Define the Cells
+defmodule Cell do
+  defstruct x: 0, y: 0, print_char: "⬛️"
+
+  def neighbour_tuples(cell) do
+    [
+      {cell.x - 1, cell.y - 1},
+      {cell.x, cell.y - 1},
+      {cell.x + 1, cell.y - 1},
+      {cell.x - 1, cell.y},
+      {cell.x + 1, cell.y},
+      {cell.x - 1, cell.y + 1},
+      {cell.x, cell.y + 1},
+      {cell.x + 1, cell.y + 1}
+    ]
+  end
+end
+```
+
+```elixir
+# Test Cells struct
+1..10
+|> Enum.map(fn x -> %Cell{x: x, y: x} end)
+|> Enum.map(fn cell -> cell.print_char end)
+```
+
+### Setup the board
+
+The cells live on a 2-D board so we have a few options for storing the cells.  We can only store the live cells for that 
+generation, but that raises issues when trying to implement the 2nd rule Any dead cell with three live neighbours becomes a live cell.
+
+I am going to start down this path and see where I get to
+
+```elixir
+# Defining the board
+defmodule Board do
+  defstruct cells: []
+
+  def count_cells(board) do
+    Enum.count(board.cells)
+  end
+end
+```
+
+```elixir
+# Test Board
+cell = %Cell{}
+board = %Board{cells: [cell]}
+Board.count_cells(board)
+```
+
+So we have the structures in place - I am going to redefine the module to start adding some functions for counting cell neighbours
+
+```elixir
+defmodule Board do
+  defstruct cells: []
+
+  def count_neighbours(board, cell) do
+    board.cells
+    |> Enum.filter(fn c -> is_neighbour(cell, c) end)
+    |> Enum.count()
+  end
+
+  def is_neighbour(cell, c) do
+    Enum.any?(Cell.neighbour_tuples(cell), fn c_tuple -> c_tuple == {c.x, c.y} end)
+  end
+end
+```
+
+```elixir
+cell = %Cell{x: -1, y: -1}
+board = %Board{cells: [%Cell{x: 0, y: 0}, cell]}
+Board.count_neighbours(board, cell)
+```
+
+We have the beasics in place, a board, cell and ability to calculate the number of neighbours.  Now time to implement the rules.
