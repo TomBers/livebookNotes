@@ -18,7 +18,7 @@ Each iteration a Cell can change from on to off or stay in its state.
 ```elixir
 # Define the Cells
 defmodule Cell do
-  defstruct x: 0, y: 0, print_char: "⬛️"
+  defstruct x: 0, y: 0, print_char: "⬛️", is_active: false
 
   def neighbour_tuples(cell) do
     [
@@ -92,3 +92,77 @@ Board.count_neighbours(board, cell)
 ```
 
 We have the beasics in place, a board, cell and ability to calculate the number of neighbours.  Now time to implement the rules.
+
+One of the stumbling blocks is how to setup and initial state and if the board structure should only have alive cells or all cells with a boolean on / off
+
+I have decided that every cell should be a cell struct, so added a filter on the count neighbours to take it into account.
+
+```elixir
+defmodule Board do
+  defstruct cells: []
+
+  def setup(x, y, active) do
+    for i <- 1..x,
+        j <- 1..y,
+        do: %Cell{x: i, y: j, is_active: Enum.any?(active, fn t -> t == {i, j} end)}
+  end
+
+  def count_neighbours(board, cell) do
+    board.cells
+    |> Enum.filter(fn c -> c.is_active end)
+    |> Enum.filter(fn c -> is_neighbour(cell, c) end)
+    |> Enum.count()
+  end
+
+  def is_neighbour(cell, c) do
+    Enum.any?(Cell.neighbour_tuples(cell), fn c_tuple -> c_tuple == {c.x, c.y} end)
+  end
+end
+```
+
+```elixir
+Board.setup(10, 10, [{1, 1}])
+```
+
+We now have a way of setting up the board, now we need to have a way of advancing the board, one step, this means going through each cell, counting the neighbours and changing the state
+
+```elixir
+defmodule Board do
+  defstruct cells: []
+
+  def setup(x, y, active) do
+    for i <- 1..x,
+        j <- 1..y,
+        do: %Cell{x: i, y: j, is_active: Enum.any?(active, fn t -> t == {i, j} end)}
+  end
+
+  def advance(board) do
+    board
+    |> Enum.map(fn cell -> update_cell(board, cell) end)
+  end
+
+  def update_cell(board, cell) do
+    case count_neighbours(board, cell) do
+      3 -> Map.replace(cell, :is_active, true)
+      2 -> Map.replace(cell, :is_active, cell.is_active)
+      _ -> Map.replace(cell, :is_active, false)
+    end
+  end
+
+  def count_neighbours(board, cell) do
+    board
+    |> Enum.filter(fn c -> c.is_active end)
+    |> Enum.filter(fn c -> is_neighbour(cell, c) end)
+    |> Enum.count()
+  end
+
+  def is_neighbour(cell, c) do
+    Enum.any?(Cell.neighbour_tuples(cell), fn c_tuple -> c_tuple == {c.x, c.y} end)
+  end
+end
+```
+
+```elixir
+board = Board.setup(10, 10, [{1, 1}])
+Board.advance(board)
+```
