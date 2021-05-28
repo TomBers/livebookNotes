@@ -9,7 +9,6 @@ It allows you to set a starting state and then run the board through n iteration
 The 'game' itself runs on an infinite 2-D board with each cell being either on on or off.
 Each iteration a Cell can change from on to off or stay in its state.
 
-
 1. Any live cell with two or three live neighbours survives.
 2. Any dead cell with three live neighbours becomes a live cell.
 3. All other live cells die in the next generation. Similarly, all other dead cells stay dead.
@@ -17,7 +16,7 @@ Each iteration a Cell can change from on to off or stay in its state.
 ```elixir
 # Define the Cells
 defmodule Cell do
-  defstruct x: 0, y: 0, print_char: "⬛️", is_active: false
+  defstruct x: 0, y: 0, on_char: "⬛️", off_char: "⬜️", is_active: false
 
   def neighbour_tuples(cell) do
     [
@@ -38,7 +37,7 @@ end
 # Test Cells struct
 1..10
 |> Enum.map(fn x -> %Cell{x: x, y: x} end)
-|> Enum.map(fn cell -> cell.print_char end)
+|> Enum.map(fn cell -> cell.on_char end)
 ```
 
 ### Setup the board
@@ -101,9 +100,12 @@ defmodule Board do
   defstruct cells: []
 
   def setup(x, y, active) do
-    for i <- 1..x,
-        j <- 1..y,
-        do: %Cell{x: i, y: j, is_active: Enum.any?(active, fn t -> t == {i, j} end)}
+    cells =
+      for i <- 1..x,
+          j <- 1..y,
+          do: %Cell{x: i, y: j, is_active: Enum.any?(active, fn t -> t == {i, j} end)}
+
+    %Board{cells: cells}
   end
 
   def count_neighbours(board, cell) do
@@ -130,23 +132,26 @@ defmodule Board do
   defstruct cells: []
 
   def setup(x, y, active) do
-    for i <- 1..x,
-        j <- 1..y,
-        do: %Cell{x: i, y: j, is_active: Enum.any?(active, fn t -> t == {i, j} end)}
+    cells =
+      for i <- 1..x,
+          j <- 1..y,
+          do: %Cell{x: i, y: j, is_active: Enum.any?(active, fn t -> t == {i, j} end)}
+
+    %Board{cells: cells}
   end
 
   def advance(board) do
-    board
-    |> Enum.map(fn cell -> update_cell(board, cell) end)
+    cells = board.cells |> Enum.map(fn cell -> update_cell(board, cell) end)
+    Map.replace(board, :cells, cells)
   end
 
   def draw(board, split) do
-    board
+    board.cells
     |> Enum.map(fn cell ->
       if cell.is_active do
-        cell.print_char
+        cell.on_char
       else
-        "⬜️"
+        cell.off_char
       end
     end)
     |> Enum.chunk_every(split)
@@ -161,7 +166,7 @@ defmodule Board do
   end
 
   def count_neighbours(board, cell) do
-    board
+    board.cells
     |> Enum.filter(fn c -> c.is_active end)
     |> Enum.filter(fn c -> is_neighbour(cell, c) end)
     |> Enum.count()
@@ -179,7 +184,7 @@ The below example is what is known as a "Blinker" see [GameofLife](https://en.wi
 board =
   Board.setup(5, 5, [{3, 2}, {3, 3}, {3, 4}])
   |> Board.advance()
-  # |> Board.advance()
+  |> Board.advance()
   |> Board.draw(5)
 ```
 
@@ -188,6 +193,6 @@ Below is an example of a Beacon
 ```elixir
 Board.setup(6, 6, [{2, 4}, {2, 5}, {3, 4}, {3, 5}, {4, 2}, {4, 3}, {5, 2}, {5, 3}])
 |> Board.advance()
-|> Board.advance()
+# |> Board.advance()
 |> Board.draw(6)
 ```
