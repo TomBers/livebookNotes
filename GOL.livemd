@@ -122,14 +122,14 @@ end
 ```
 
 ```elixir
-Board.setup(10, 10, [{1, 1}])
+Board.setup(5, 5, [{1, 1}])
 ```
 
 We now have a way of setting up the board, now we need to have a way of advancing the board, one step, this means going through each cell, counting the neighbours and changing the state
 
 ```elixir
 defmodule Board do
-  defstruct cells: []
+  defstruct cells: [], x: 0, y: 0
 
   def setup(x, y, active) do
     cells =
@@ -137,24 +137,12 @@ defmodule Board do
           j <- 1..y,
           do: %Cell{x: i, y: j, is_active: Enum.any?(active, fn t -> t == {i, j} end)}
 
-    %Board{cells: cells}
+    %Board{cells: cells, x: x, y: y}
   end
 
   def advance(board) do
     cells = board.cells |> Enum.map(fn cell -> update_cell(board, cell) end)
     Map.replace(board, :cells, cells)
-  end
-
-  def draw(board, split) do
-    board.cells
-    |> Enum.map(fn cell ->
-      if cell.is_active do
-        cell.on_char
-      else
-        cell.off_char
-      end
-    end)
-    |> Enum.chunk_every(split)
   end
 
   def update_cell(board, cell) do
@@ -175,6 +163,18 @@ defmodule Board do
   def is_neighbour(cell, c) do
     Enum.any?(Cell.neighbour_tuples(cell), fn c_tuple -> c_tuple == {c.x, c.y} end)
   end
+
+  def draw(board) do
+    board.cells
+    |> Enum.map(fn cell ->
+      if cell.is_active do
+        cell.on_char
+      else
+        cell.off_char
+      end
+    end)
+    |> Enum.chunk_every(board.x)
+  end
 end
 ```
 
@@ -185,7 +185,7 @@ board =
   Board.setup(5, 5, [{3, 2}, {3, 3}, {3, 4}])
   |> Board.advance()
   |> Board.advance()
-  |> Board.draw(5)
+  |> Board.draw()
 ```
 
 Below is an example of a Beacon
@@ -193,6 +193,42 @@ Below is an example of a Beacon
 ```elixir
 Board.setup(6, 6, [{2, 4}, {2, 5}, {3, 4}, {3, 5}, {4, 2}, {4, 3}, {5, 2}, {5, 3}])
 |> Board.advance()
-# |> Board.advance()
-|> Board.draw(6)
+|> Board.draw()
+```
+
+Running the game - I want to be able to run the game from an initial state and specify how many iterations, I also want to print the board on each update.
+
+I use a recursive function that takes the number of iterations, runs the game state 1 generation, prints the results then decreases the iteration count.
+Using pattern matching in the fuction signiture, I exit the recursion when the iteration gets to 0.
+
+```elixir
+defmodule RunGOL do
+  def run(board, 0) do
+    board
+  end
+
+  def run(board, iterations) do
+    new_board = Board.advance(board)
+
+    new_board
+    |> Board.draw()
+    |> IO.inspect()
+
+    run(new_board, iterations - 1)
+  end
+end
+```
+
+```elixir
+Board.setup(5, 5, [{3, 2}, {3, 3}, {3, 4}])
+|> RunGOL.run(3)
+
+:ok
+```
+
+```elixir
+Board.setup(6, 6, [{2, 4}, {2, 5}, {3, 4}, {3, 5}, {4, 2}, {4, 3}, {5, 2}, {5, 3}])
+|> RunGOL.run(3)
+
+:ok
 ```
