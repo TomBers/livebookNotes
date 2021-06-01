@@ -13,30 +13,20 @@ Each iteration a Cell can change from on to off or stay in its state.
 2. Any dead cell with three live neighbours becomes a live cell.
 3. All other live cells die in the next generation. Similarly, all other dead cells stay dead.
 
+Now the Rule have been established, lets look into building the parts
+
 ```elixir
 # Define the Cells
 defmodule Cell do
   defstruct x: 0, y: 0, on_char: "⬛️", off_char: "⬜️", is_active: false
-
-  def neighbour_tuples(cell) do
-    [
-      {cell.x - 1, cell.y - 1},
-      {cell.x, cell.y - 1},
-      {cell.x + 1, cell.y - 1},
-      {cell.x - 1, cell.y},
-      {cell.x + 1, cell.y},
-      {cell.x - 1, cell.y + 1},
-      {cell.x, cell.y + 1},
-      {cell.x + 1, cell.y + 1}
-    ]
-  end
 end
 ```
 
 ```elixir
 # Test Cells struct
-1..10
-|> Enum.map(fn x -> %Cell{x: x, y: x} end)
+1..3
+|> Enum.map(fn x -> %Cell{x: x, y: 44} end)
+|> IO.inspect()
 |> Enum.map(fn cell -> cell.on_char end)
 ```
 
@@ -65,7 +55,36 @@ board = %Board{cells: [cell]}
 Board.count_cells(board)
 ```
 
-So we have the structures in place - I am going to redefine the module to start adding some functions for counting cell neighbours
+So we have the structures in place - I am going to redefine the module to start adding some 
+functions for counting cell neighbours.
+
+I am doing something a bit odd, within the cell module I am adding a function to return an array of all the neightbours.
+We could do this mathematically, by adding a function that checks if against the {x, y} values, but this allows us to 
+break up that logic and define the grid once.
+
+See diagram.
+
+![](images/Grid.png)
+
+```elixir
+# Define the Cells
+defmodule Cell do
+  defstruct x: 0, y: 0, on_char: "⬛️", off_char: "⬜️", is_active: false
+
+  def neighbour_tuples(cell) do
+    [
+      {cell.x - 1, cell.y - 1},
+      {cell.x, cell.y - 1},
+      {cell.x + 1, cell.y - 1},
+      {cell.x - 1, cell.y},
+      {cell.x + 1, cell.y},
+      {cell.x - 1, cell.y + 1},
+      {cell.x, cell.y + 1},
+      {cell.x + 1, cell.y + 1}
+    ]
+  end
+end
+```
 
 ```elixir
 defmodule Board do
@@ -89,7 +108,7 @@ board = %Board{cells: [%Cell{x: 0, y: 0}, cell]}
 Board.count_neighbours(board, cell)
 ```
 
-We have the beasics in place, a board, cell and ability to calculate the number of neighbours.  Now time to implement the rules.
+We have the basics in place, a board, cell and ability to calculate the number of neighbours.  Now time to implement the rules.
 
 One of the stumbling blocks is how to setup and initial state and if the board structure should only have alive cells or all cells with a boolean on / off
 
@@ -228,7 +247,7 @@ Board.setup(5, 5, [{3, 2}, {3, 3}, {3, 4}])
 
 ```elixir
 Board.setup(6, 6, [{2, 4}, {2, 5}, {3, 4}, {3, 5}, {4, 2}, {4, 3}, {5, 2}, {5, 3}])
-|> RunGOL.run(3)
+|> RunGOL.run(10)
 
 :ok
 ```
