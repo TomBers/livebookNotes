@@ -18,7 +18,7 @@ It suggests that we can store the tree as "Nodes and references" - binary trees 
 
 or
 
-Binary trees can also be stored in breadth-first order as an implicit data structure in arrays, and if the tree is a complete binary tree, this method wastes no space. In this compact arrangement, if a node has an index i, its children are found at indices $${\displaystyle 2i+1}2i+1$$ (for the left child) and $${\displaystyle 2i+2}2i+2$$ (for the right), while its parent (if any) is found at index $${\displaystyle \left\lfloor {\frac {i-1}{2}}\right\rfloor }\left\lfloor {\frac {i-1}{2}}\right\rfloor$$  (assuming the root has index zero). Alternatively, with a 1-indexed array, the implementation is simplified with children found at $${\displaystyle 2i}2i$$ and $${\displaystyle 2i+1}2i+1$$, and parent found at $${\displaystyle \lfloor i/2\rfloor }{\displaystyle \lfloor i/2\rfloor }$$
+Binary trees can also be stored in breadth-first order as an implicit data structure in arrays, and if the tree is a complete binary tree, this method wastes no space. In this compact arrangement, if a node has an index i, its children are found at indices ...
 
 That is all very complicated, so lets have a go at storing a simple tree
 
@@ -33,7 +33,7 @@ end
 
 ```elixir
 defmodule Node do
-  defstruct val: 0, left_child: nil, right_child: nil, is_root: false
+  defstruct val: 0, left_child: nil, right_child: nil
 end
 ```
 
@@ -48,7 +48,7 @@ five = %Node{val: 5}
 seven = %Node{val: 7}
 six = %Node{val: 6, left_child: five, right_child: seven}
 
-four = %Node{val: 4, left_child: two, right_child: six, is_root: true}
+four = %Node{val: 4, left_child: two, right_child: six}
 
 tree = %Tree{nodes: four}
 ```
@@ -59,47 +59,57 @@ The challenge now is given this structure can we find a way of going through it 
 defmodule TraverseTree do
   def run(tree) do
     tree.nodes
-    |> depth_search([], [])
+    |> depth_search([tree.nodes], [])
   end
 
   # We want to go all the way to the bottom of the left hand side adding to a result.
   # We need to keep track of the nodes we visted and add them to the accumulator if they are a leaf (last)
   # or both children have alredy been added
 
+  def depth_search(_node, [], acc) do
+    acc
+  end
+
   def depth_search(node, visited, acc) do
-    # IO.inspect(node.val)
+    IO.inspect(node.val)
     # Four actions
     # We find a leaf, add the leaf and return up
     # We find a node, with the left explores - add myself and explore the right hand
     # We find a node with both children unexplored - go down the left first
     # Find a node with both children explored - move up
 
-    if is_leaf(node) do
-      {parent, new_visited} = getLastNode(visited)
-      depth_search(parent, new_visited, acc ++ [node.val])
-    end
+    {parent, previous_visited} = get_previous_node(visited)
 
-    if has_visited_left_child(node, acc) and !has_visited_right_child(node, acc) do
-      depth_search(node.right_child, [node] ++ visited, acc ++ [node.val])
-    end
-
-    if !has_visited_children(node, acc) do
-      depth_search(node.left_child, [node] ++ visited, acc)
-    end
-
-    if has_visited_children(node, acc) do
-      if node.is_root do
-        IO.inspect(acc)
-        IO.inspect("I am done")
-        acc
+    new_node =
+      if is_leaf(node) or has_visited_children(node, acc) do
+        parent
       else
-        {parent, new_visited} = getLastNode(visited)
-        depth_search(parent, new_visited, acc)
+        if has_visited_left_child(node, acc) and !has_visited_right_child(node, acc) do
+          node.right_child
+        else
+          node.left_child
+        end
       end
-    end
+
+    new_visited =
+      if is_leaf(node) or has_visited_children(node, acc) do
+        previous_visited
+      else
+        [node] ++ visited
+      end
+
+    new_acc =
+      if is_leaf(node) or
+           (has_visited_left_child(node, acc) and !has_visited_right_child(node, acc)) do
+        acc ++ [node.val]
+      else
+        acc
+      end
+
+    depth_search(new_node, new_visited, new_acc)
   end
 
-  def getLastNode(visited) do
+  def get_previous_node(visited) do
     visited
     |> List.pop_at(0)
   end
@@ -117,7 +127,6 @@ defmodule TraverseTree do
   end
 
   def is_leaf(node) do
-    # IO.inspect(node)
     node.left_child == nil and node.right_child == nil
   end
 end
