@@ -66,6 +66,7 @@ defmodule TraverseTree do
   # We need to keep track of the nodes we visted and add them to the accumulator if they are a leaf (last)
   # or both children have alredy been added
 
+  # We exit when we have no more nodes to visit
   def depth_search(_node, [], acc) do
     acc
   end
@@ -80,33 +81,44 @@ defmodule TraverseTree do
 
     {parent, previous_visited} = get_previous_node(visited)
 
-    new_node =
-      if is_leaf(node) or has_visited_children(node, acc) do
-        parent
-      else
-        if has_visited_left_child(node, acc) and !has_visited_right_child(node, acc) do
-          node.right_child
-        else
-          node.left_child
-        end
-      end
+    new_node = get_next_node(node, parent, acc)
+    new_visited = update_visited(node, visited, previous_visited, acc)
+    new_acc = update_accumulator(node, acc)
 
-    new_visited =
-      if is_leaf(node) or has_visited_children(node, acc) do
-        previous_visited
-      else
-        [node] ++ visited
-      end
-
-    new_acc =
-      if is_leaf(node) or
-           (has_visited_left_child(node, acc) and !has_visited_right_child(node, acc)) do
-        acc ++ [node.val]
-      else
-        acc
-      end
-
+    # Recurse the function with the new params
     depth_search(new_node, new_visited, new_acc)
+  end
+
+  def get_next_node(node, parent, acc) do
+    if is_leaf(node) or has_visited_children(node, acc) do
+      parent
+    else
+      if has_visited_left_child(node, acc) and !has_visited_right_child(node, acc) do
+        node.right_child
+      else
+        node.left_child
+      end
+    end
+  end
+
+  def update_visited(node, visited, previous_visited, acc) do
+    # We either move up the tree or down, if we move down we add the current node to the visited list
+    # If we move up, we remove the current node
+    if is_leaf(node) or has_visited_children(node, acc) do
+      previous_visited
+    else
+      [node] ++ visited
+    end
+  end
+
+  def update_accumulator(node, acc) do
+    # Add the node if it is a leaf, or we have visted the left child but not the right child
+    if is_leaf(node) or
+         (has_visited_left_child(node, acc) and !has_visited_right_child(node, acc)) do
+      acc ++ [node.val]
+    else
+      acc
+    end
   end
 
   def get_previous_node(visited) do
@@ -130,6 +142,41 @@ defmodule TraverseTree do
     node.left_child == nil and node.right_child == nil
   end
 end
+
+TraverseTree.run(tree)
+```
+
+Lets try with a more complex example, we will add another layer to the Tree.
+
+![](images/complex-depth-first.png)
+
+```elixir
+# Left side of Tree
+one = %Node{val: 1}
+three = %Node{val: 3}
+two = %Node{val: 2, left_child: one, right_child: three}
+
+five = %Node{val: 5}
+seven = %Node{val: 7}
+six = %Node{val: 6, left_child: five, right_child: seven}
+
+four = %Node{val: 4, left_child: two, right_child: six}
+
+# Right side
+
+nine = %Node{val: 9}
+eleven = %Node{val: 11}
+ten = %Node{val: 10, left_child: nine, right_child: eleven}
+
+thirteen = %Node{val: 13}
+fifteen = %Node{val: 15}
+fourteen = %Node{val: 14, left_child: thirteen, right_child: fifteen}
+
+twelve = %Node{val: 12, left_child: ten, right_child: fourteen}
+
+eight = %Node{val: 8, left_child: four, right_child: twelve}
+
+tree = %Tree{nodes: eight}
 
 TraverseTree.run(tree)
 ```
