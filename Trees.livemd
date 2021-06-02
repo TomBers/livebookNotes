@@ -84,7 +84,6 @@ defmodule TraverseTree do
     new_node = get_next_node(node, parent, acc)
     new_visited = update_visited(node, visited, previous_visited, acc)
     new_acc = update_accumulator(node, acc)
-
     # Recurse the function with the new params
     depth_search(new_node, new_visited, new_acc)
   end
@@ -179,4 +178,131 @@ eight = %Node{val: 8, left_child: four, right_child: twelve}
 tree = %Tree{nodes: eight}
 
 TraverseTree.run(tree)
+```
+
+Great - we can see that the algorithm works and can traverse a bigger tree.  However, there is a problem with
+the implementation.  Not all binary trees are fully populated, so some nodes can have a left child with no right child or 
+vice versa. Try running the above with setting a nodes child to nil - it will enter an infinite loop
+
+Lets see what happens when we have a tree with a nil as a child.
+
+![](images/tree_nill_child.png)
+
+```elixir
+b = %Node{val: "B"}
+
+a = %Node{val: "A", left_child: b, right_child: nil}
+
+TraverseTree.run(%Tree{nodes: a})
+```
+
+That seems to have worked - lets try a larger example and try and fix.
+
+See diagram
+
+![](images/bigger_tree_with_nil_child.png)
+
+```elixir
+defmodule TT do
+  def run(tree) do
+    tree.nodes
+    |> depth_search([tree.nodes], [])
+  end
+
+  # We want to go all the way to the bottom of the left hand side adding to a result.
+  # We need to keep track of the nodes we visted and add them to the accumulator if they are a leaf (last)
+  # or both children have alredy been added
+
+  # We exit when we have no more nodes to visit
+  def depth_search(_node, [], acc) do
+    acc
+  end
+
+  def depth_search(node, visited, acc) do
+    IO.inspect(node.val)
+    # Four actions
+    # We find a leaf, add the leaf and return up
+    # We find a node, with the left explores - add myself and explore the right hand
+    # We find a node with both children unexplored - go down the left first
+    # Find a node with both children explored - move up
+
+    {parent, previous_visited} = get_previous_node(visited)
+
+    new_node = get_next_node(node, parent, acc)
+
+    new_visited = update_visited(node, visited, previous_visited, acc)
+
+    new_acc = update_accumulator(node, acc)
+
+    # Recurse the function with the new params
+    depth_search(new_node, new_visited, new_acc)
+  end
+
+  def get_next_node(node, parent, acc) do
+    if is_leaf(node) or has_visited_children(node, acc) do
+      parent
+    else
+      if visited_left_but_not_right(node, acc) do
+        node.right_child
+      else
+        node.left_child
+      end
+    end
+  end
+
+  def update_visited(node, visited, previous_visited, acc) do
+    # We either move up the tree or down, if we move down we add the current node to the visited list
+    # If we move up, we remove the current node
+    if is_leaf(node) or has_visited_children(node, acc) do
+      previous_visited
+    else
+      [node] ++ visited
+    end
+  end
+
+  def update_accumulator(node, acc) do
+    # Add the node if it is a leaf, or we have visted the left child but not the right child or if the right child is nil
+    if is_leaf(node) or visited_left_but_not_right(node, acc) or
+         (has_visited?(node.left_child, acc) && is_nil(node.right_child)) do
+      acc ++ [node.val]
+    else
+      acc
+    end
+  end
+
+  def get_previous_node(visited) do
+    visited
+    |> List.pop_at(0)
+  end
+
+  def has_visited_children(node, acc) do
+    has_visited?(node.left_child, acc) and has_visited?(node.right_child, acc)
+  end
+
+  def visited_left_but_not_right(node, acc) do
+    has_visited?(node.left_child, acc) and !has_visited?(node.right_child, acc)
+  end
+
+  def has_visited?(node, acc) do
+    if is_nil(node) do
+      true
+    else
+      Enum.any?(acc, fn n -> n == node.val end)
+    end
+  end
+
+  def is_leaf(node) do
+    node.left_child == nil and node.right_child == nil
+  end
+end
+```
+
+```elixir
+a = %Node{val: "A"}
+# Here is the nil Child
+b = %Node{val: "B", left_child: a, right_child: nil}
+d = %Node{val: "D"}
+c = %Node{val: "C", left_child: b, right_child: d}
+
+TT.run(%Tree{nodes: c})
 ```
