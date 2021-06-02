@@ -297,11 +297,17 @@ defmodule TT do
 end
 ```
 
+Now lests test with a tree that nodes with left_child is nil and right_child is nil.
+
+(We have added a node "E" to the above diagram that is the right child of "D")
+
 ```elixir
 a = %Node{val: "A"}
 # Here is the nil Child
 b = %Node{val: "B", left_child: a, right_child: nil}
-d = %Node{val: "D"}
+
+e = %Node{val: "E"}
+d = %Node{val: "D", left_child: nil, right_child: e}
 c = %Node{val: "C", left_child: b, right_child: d}
 
 TT.run(%Tree{nodes: c})
