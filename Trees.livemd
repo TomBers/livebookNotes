@@ -1,0 +1,314 @@
+# Trees
+
+## Introduction
+
+[Wikipeida reference](https://en.wikipedia.org/wiki/Binary_search_tree)
+
+We want to build a binary tree, which is a fundamental data structure and one that works quite well as a recursive algorithm.
+
+For this notebook, I want to think about how I would store a tree structure and how you could traverse it both depth first and breadth first.
+
+(These are common tasks typical at university level CS or job interviews)
+
+## The Tree itself
+
+From the Wikipedia entry we see that "In computer science, a binary tree is a tree data structure in which each node has at most two children, which are referred to as the left child and the right child."
+
+It suggests that we can store the tree as "Nodes and references" - binary trees are typically constructed by having a tree node structure which contains some data and references to its left child and its right child.
+
+or
+
+Binary trees can also be stored in breadth-first order as an implicit data structure in arrays, and if the tree is a complete binary tree, this method wastes no space. In this compact arrangement, if a node has an index i, its children are found at indices ...
+
+That is all very complicated, so lets have a go at storing a simple tree
+
+## Experiments
+
+```elixir
+# A Tree is a collection of Nodes
+defmodule Tree do
+  defstruct nodes: []
+end
+```
+
+```elixir
+defmodule Node do
+  defstruct val: 0, left_child: nil, right_child: nil
+end
+```
+
+Lets build a simple tree - ![](images/binary_tree.png)
+
+```elixir
+one = %Node{val: 1}
+three = %Node{val: 3}
+two = %Node{val: 2, left_child: one, right_child: three}
+
+five = %Node{val: 5}
+seven = %Node{val: 7}
+six = %Node{val: 6, left_child: five, right_child: seven}
+
+four = %Node{val: 4, left_child: two, right_child: six}
+
+tree = %Tree{nodes: four}
+```
+
+The challenge now is given this structure can we find a way of going through it and getting the right order out?
+
+```elixir
+defmodule TraverseTree do
+  def run(tree) do
+    tree.nodes
+    |> depth_search([tree.nodes], [])
+  end
+
+  # We want to go all the way to the bottom of the left hand side adding to a result.
+  # We need to keep track of the nodes we visted and add them to the accumulator if they are a leaf (last)
+  # or both children have alredy been added
+
+  # We exit when we have no more nodes to visit
+  def depth_search(_node, [], acc) do
+    acc
+  end
+
+  def depth_search(node, visited, acc) do
+    IO.inspect(node.val)
+    # Four actions
+    # We find a leaf, add the leaf and return up
+    # We find a node, with the left explores - add myself and explore the right hand
+    # We find a node with both children unexplored - go down the left first
+    # Find a node with both children explored - move up
+
+    {parent, previous_visited} = get_previous_node(visited)
+
+    new_node = get_next_node(node, parent, acc)
+    new_visited = update_visited(node, visited, previous_visited, acc)
+    new_acc = update_accumulator(node, acc)
+    # Recurse the function with the new params
+    depth_search(new_node, new_visited, new_acc)
+  end
+
+  def get_next_node(node, parent, acc) do
+    if is_leaf(node) or has_visited_children(node, acc) do
+      parent
+    else
+      if has_visited_left_child(node, acc) and !has_visited_right_child(node, acc) do
+        node.right_child
+      else
+        node.left_child
+      end
+    end
+  end
+
+  def update_visited(node, visited, previous_visited, acc) do
+    # We either move up the tree or down, if we move down we add the current node to the visited list
+    # If we move up, we remove the current node
+    if is_leaf(node) or has_visited_children(node, acc) do
+      previous_visited
+    else
+      [node] ++ visited
+    end
+  end
+
+  def update_accumulator(node, acc) do
+    # Add the node if it is a leaf, or we have visted the left child but not the right child
+    if is_leaf(node) or
+         (has_visited_left_child(node, acc) and !has_visited_right_child(node, acc)) do
+      acc ++ [node.val]
+    else
+      acc
+    end
+  end
+
+  def get_previous_node(visited) do
+    visited
+    |> List.pop_at(0)
+  end
+
+  def has_visited_children(node, acc) do
+    has_visited_left_child(node, acc) and has_visited_right_child(node, acc)
+  end
+
+  def has_visited_left_child(node, acc) do
+    Enum.any?(acc, fn n -> n == node.left_child.val end)
+  end
+
+  def has_visited_right_child(node, acc) do
+    Enum.any?(acc, fn n -> n == node.right_child.val end)
+  end
+
+  def is_leaf(node) do
+    node.left_child == nil and node.right_child == nil
+  end
+end
+
+TraverseTree.run(tree)
+```
+
+Lets try with a more complex example, we will add another layer to the Tree.
+
+![](images/complex-depth-first.png)
+
+```elixir
+# Left side of Tree
+one = %Node{val: 1}
+three = %Node{val: 3}
+two = %Node{val: 2, left_child: one, right_child: three}
+
+five = %Node{val: 5}
+seven = %Node{val: 7}
+six = %Node{val: 6, left_child: five, right_child: seven}
+
+four = %Node{val: 4, left_child: two, right_child: six}
+
+# Right side
+
+nine = %Node{val: 9}
+eleven = %Node{val: 11}
+ten = %Node{val: 10, left_child: nine, right_child: eleven}
+
+thirteen = %Node{val: 13}
+fifteen = %Node{val: 15}
+fourteen = %Node{val: 14, left_child: thirteen, right_child: fifteen}
+
+twelve = %Node{val: 12, left_child: ten, right_child: fourteen}
+
+eight = %Node{val: 8, left_child: four, right_child: twelve}
+
+tree = %Tree{nodes: eight}
+
+TraverseTree.run(tree)
+```
+
+Great - we can see that the algorithm works and can traverse a bigger tree.  However, there is a problem with
+the implementation.  Not all binary trees are fully populated, so some nodes can have a left child with no right child or 
+vice versa. Try running the above with setting a nodes child to nil - it will enter an infinite loop
+
+Lets see what happens when we have a tree with a nil as a child.
+
+![](images/tree_nill_child.png)
+
+```elixir
+b = %Node{val: "B"}
+
+a = %Node{val: "A", left_child: b, right_child: nil}
+
+TraverseTree.run(%Tree{nodes: a})
+```
+
+That seems to have worked - lets try a larger example and try and fix.
+
+See diagram
+
+![](images/bigger_tree_with_nil_child.png)
+
+```elixir
+defmodule TT do
+  def run(tree) do
+    tree.nodes
+    |> depth_search([tree.nodes], [])
+  end
+
+  # We want to go all the way to the bottom of the left hand side adding to a result.
+  # We need to keep track of the nodes we visted and add them to the accumulator if they are a leaf (last)
+  # or both children have alredy been added
+
+  # We exit when we have no more nodes to visit
+  def depth_search(_node, [], acc) do
+    acc
+  end
+
+  def depth_search(node, visited, acc) do
+    IO.inspect(node.val)
+    # Four actions
+    # We find a leaf, add the leaf and return up
+    # We find a node, with the left explores - add myself and explore the right hand
+    # We find a node with both children unexplored - go down the left first
+    # Find a node with both children explored - move up
+
+    {parent, previous_visited} = get_previous_node(visited)
+
+    new_node = get_next_node(node, parent, acc)
+
+    new_visited = update_visited(node, visited, previous_visited, acc)
+
+    new_acc = update_accumulator(node, acc)
+
+    # Recurse the function with the new params
+    depth_search(new_node, new_visited, new_acc)
+  end
+
+  def get_next_node(node, parent, acc) do
+    if is_leaf(node) or has_visited_children(node, acc) do
+      parent
+    else
+      if visited_left_but_not_right(node, acc) do
+        node.right_child
+      else
+        node.left_child
+      end
+    end
+  end
+
+  def update_visited(node, visited, previous_visited, acc) do
+    # We either move up the tree or down, if we move down we add the current node to the visited list
+    # If we move up, we remove the current node
+    if is_leaf(node) or has_visited_children(node, acc) do
+      previous_visited
+    else
+      [node] ++ visited
+    end
+  end
+
+  def update_accumulator(node, acc) do
+    # Add the node if it is a leaf, or we have visted the left child but not the right child or if the right child is nil
+    if is_leaf(node) or visited_left_but_not_right(node, acc) or
+         (has_visited?(node.left_child, acc) && is_nil(node.right_child)) do
+      acc ++ [node.val]
+    else
+      acc
+    end
+  end
+
+  def get_previous_node(visited) do
+    visited
+    |> List.pop_at(0)
+  end
+
+  def has_visited_children(node, acc) do
+    has_visited?(node.left_child, acc) and has_visited?(node.right_child, acc)
+  end
+
+  def visited_left_but_not_right(node, acc) do
+    has_visited?(node.left_child, acc) and !has_visited?(node.right_child, acc)
+  end
+
+  def has_visited?(node, acc) do
+    if is_nil(node) do
+      true
+    else
+      Enum.any?(acc, fn n -> n == node.val end)
+    end
+  end
+
+  def is_leaf(node) do
+    node.left_child == nil and node.right_child == nil
+  end
+end
+```
+
+Now lests test with a tree that nodes with left_child is nil and right_child is nil.
+
+(We have added a node "E" to the above diagram that is the right child of "D")
+
+```elixir
+a = %Node{val: "A"}
+# Here is the nil Child
+b = %Node{val: "B", left_child: a, right_child: nil}
+
+e = %Node{val: "E"}
+d = %Node{val: "D", left_child: nil, right_child: e}
+c = %Node{val: "C", left_child: b, right_child: d}
+
+TT.run(%Tree{nodes: c})
+```
