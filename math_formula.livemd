@@ -2,30 +2,38 @@
 
 ## Eqns
 
-$$x*\text{one} x*\text{two}$$
+$$x+1$$
+
+$$\bar{y}$$
+$$\overrightarrow{AB}$$
+
+$$
+\begin{alignat}{2}
+   10&x+&3&y=2\
+   3&x+&13&y=4
+\end{alignat}
+$$
 
 $$f(a,b,c) = (a^2+b^2+x^3)^3$$
 
 $$\sum_{i=1}^\infty\frac{1}{n^2}
 =\frac{\pi^2}{6}$$
 
-$$\bar{y}$$
-$$\hat{\theta}$$
-$$\overleftarrow{AB}$$
-$$\underbar{X}$$
+$$
+\cfrac{2}{1+\cfrac{2}{1+\cfrac{2}{1}}}
+$$
 
+$$
+\begin{bmatrix*}[r]
+   0 & -1 \
+   -1 & 0
+\end{bmatrix*}
+$$
 
-Seems to be a parse error in these formula - possibly the begin / end keywords?
-
-$$\begin{pmatrix}
-   a & b \
-   c & d
-\end{pmatrix}$$
-$$\sum_{
-\begin{subarray}{l}
-   i\in\Lambda\
-   0<j<n
-\end{subarray}}$$
-
-
-$$x+1$$
+$$
+\begin{CD}
+   A @>a>> B \
+@VbVV @AAcA \
+   C @= D
+\end{CD}
+$$
