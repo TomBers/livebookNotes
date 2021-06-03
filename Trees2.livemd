@@ -16,6 +16,10 @@ defmodule Tree do
 end
 ```
 
+Lets try with this tree
+
+![](images/breadth_first_tree.png)
+
 ```elixir
 four = %Node{val: 4}
 five = %Node{val: 5}
@@ -93,6 +97,10 @@ end
 
 Depthfirst.run(tree)
 ```
+
+Lets try with missing nodes
+
+![](images/breadth_first_missing_node.png)
 
 ```elixir
 # With a none perfect tree
