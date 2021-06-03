@@ -1,0 +1,113 @@
+# Trees - Breadth first search
+
+## Tree implementation
+
+This is going to be the same as the previous Trees work.  For better description of the algorithm see - [Breaking Down Breadth-First Search](https://medium.com/basecs/breaking-down-breadth-first-search-cebe696709d9)
+
+```elixir
+defmodule Node do
+  defstruct val: 0, left_child: nil, right_child: nil
+end
+```
+
+```elixir
+defmodule Tree do
+  defstruct nodes: []
+end
+```
+
+```elixir
+four = %Node{val: 4}
+five = %Node{val: 5}
+
+six = %Node{val: 6}
+seven = %Node{val: 7}
+
+two = %Node{val: 2, left_child: four, right_child: five}
+
+three = %Node{val: 3, left_child: six, right_child: seven}
+
+one = %Node{val: 1, left_child: two, right_child: three}
+
+tree = %Tree{nodes: one}
+```
+
+So we need to implement the following :
+
+1. Visit the node, which usually just means printing out its value.
+2. Add the node’s left child to our queue.
+3. Add the node’s right child to our queue.
+
+```elixir
+defmodule Depthfirst do
+  def run(tree) do
+    tree.nodes
+    |> search([], [])
+  end
+
+  def search(nil, _queue, acc) do
+    IO.inspect(acc)
+    IO.inspect("END")
+  end
+
+  def search(node, queue, acc) do
+    IO.inspect(node.val)
+    updated_queue = queue ++ [node.left_child, node.right_child]
+    {new_node, new_queue} = List.pop_at(updated_queue, 0)
+    search(new_node, new_queue, acc ++ [node.val])
+  end
+end
+
+Depthfirst.run(tree)
+```
+
+So this is a incomplete implementation - we exit the first time we hit a "nil" node, however if we do not have a 
+full tree this will not complete.  To fix we would need to check for other non-nil values in the queue, and keep going
+if the queue had entries.
+
+The method signiture of the exit condition is wrong - we would need to remove nils from the queue and test for an empty queue.
+
+```elixir
+defmodule Depthfirst do
+  def run(tree) do
+    tree.nodes
+    |> search([nil], [])
+  end
+
+  def search(nil, [], acc) do
+    IO.inspect(acc)
+    IO.inspect("END")
+  end
+
+  def search(node, queue, acc) do
+    IO.inspect(node.val)
+
+    updated_queue =
+      (queue ++ [node.left_child, node.right_child])
+      |> Enum.filter(fn x -> !is_nil(x) end)
+
+    {new_node, new_queue} = List.pop_at(updated_queue, 0)
+    search(new_node, new_queue, acc ++ [node.val])
+  end
+end
+
+Depthfirst.run(tree)
+```
+
+```elixir
+# With a none perfect tree
+four = %Node{val: 4}
+# five = %Node{val: 5}
+
+# six = %Node{val: 6}
+seven = %Node{val: 7}
+
+two = %Node{val: 2, left_child: four, right_child: nil}
+
+three = %Node{val: 3, left_child: nil, right_child: seven}
+
+one = %Node{val: 1, left_child: two, right_child: three}
+
+tree = %Tree{nodes: one}
+Depthfirst.run(tree)
+```
