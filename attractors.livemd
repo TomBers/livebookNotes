@@ -4,7 +4,9 @@
 
 This example is looking at implementing a Lorenz 'strange' attactor.  It is notable for having chaotic solutions for certain parameter values and initial conditions.
 
-The equations are quite simple and can be implemented quite easily in a recursive function
+The equations are quite simple and can be implemented quite easily in a recursive function.
+
+For examples see - [Wikipedia, Lorenz System](https://en.wikipedia.org/wiki/Lorenz_system)
 
 ## The Equations
 
