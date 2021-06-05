@@ -17,9 +17,9 @@ $$ \frac{dz}{dt} = xy - \beta z$$
 
 ```elixir
 defmodule Lorenz do
-  @sigma 10
-  @rho 28
-  @beta 8 / 3
+  @sigma 10.0
+  @rho 28.0
+  @beta 8.0 / 3.0
 
   def update(_pos, 0, acc) do
     acc
@@ -46,4 +46,62 @@ defmodule Lorenz do
     x * y - @beta * z
   end
 end
+```
+
+Lets try it out - lets start with a sample point {1, 1, 1} and run for 20 iterations
+
+```elixir
+Lorenz.update({1, 1, 1}, 20, [])
+```
+
+We have come up with a problem - Elixir does not support arbitary precision floats, so we have some issues with the above implementation, but help is at hand.
+
+The [Decimal package](https://github.com/ericmj/decimal) lets try and implement our module with that library.  First it needs to be installed.
+
+```elixir
+Mix.install([
+  {:decimal, "~> 2.0"}
+])
+```
+
+```elixir
+defmodule Lorenz do
+  alias Decimal, as: D
+
+  @sigma 10
+  @rho 28
+  @beta Decimal.from_float(8 / 3)
+
+  def update(_pos, 0, acc) do
+    acc
+  end
+
+  def update(pos, iter, acc) do
+    new_pos = calc_update(pos)
+    IO.inspect(iter)
+    IO.inspect(new_pos)
+    update(new_pos, iter - 1, acc ++ [new_pos])
+  end
+
+  def calc_update(pos) do
+    {calc_x(pos), calc_y(pos), calc_z(pos)}
+  end
+
+  def calc_x({x, y, _z}) do
+    D.mult(@sigma, D.sub(y, x))
+  end
+
+  def calc_y({x, y, z}) do
+    rhoz = D.sub(@rho, z)
+    D.sub(D.mult(x, rhoz), y)
+  end
+
+  def calc_z({x, y, z}) do
+    D.sub(D.mult(x, y), D.mult(@beta, z))
+  end
+end
+```
+
+```elixir
+Lorenz.update({1, 1, 1}, 20, [])
 ```
