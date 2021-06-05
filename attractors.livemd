@@ -1,0 +1,49 @@
+# Attractors
+
+## Background
+
+This example is looking at implementing a Lorenz 'strange' attactor.  It is notable for having chaotic solutions for certain parameter values and initial conditions.
+
+The equations are quite simple and can be implemented quite easily in a recursive function
+
+## The Equations
+
+In a three dimensional space $${x,y,z} $$ each value is dimension is updated by the following formulas:
+$$ \frac{dx}{dt} = \sigma(y-x)$$
+$$ \frac{dy}{dt} = x(\rho -z) -y$$
+$$ \frac{dz}{dt} = xy - \beta z$$
+
+*note in the following code $$\sigma (sigma) $$ $$\rho (rho)$$  $$\beta (beta) $$
+
+```elixir
+defmodule Lorenz do
+  @sigma 10
+  @rho 28
+  @beta 8 / 3
+
+  def update(_pos, 0, acc) do
+    acc
+  end
+
+  def update(pos, iter, acc) do
+    new_pos = calc_update(pos)
+    update(new_pos, iter - 1, acc ++ [new_pos])
+  end
+
+  def calc_update(pos) do
+    {calc_x(pos), calc_y(pos), calc_z(pos)}
+  end
+
+  def calc_x({x, y, _z}) do
+    @sigma * (y - x)
+  end
+
+  def calc_y({x, y, z}) do
+    x * (@rho - z) - y
+  end
+
+  def calc_z({x, y, z}) do
+    x * y - @beta * z
+  end
+end
+```
