@@ -30,8 +30,8 @@ defmodule Lorenz do
     update(new_pos, iter - 1, acc ++ [new_pos])
   end
 
-  def calc_update(pos) do
-    {calc_x(pos), calc_y(pos), calc_z(pos)}
+  def calc_update({x, y, z} = pos) do
+    {x + calc_x(pos), y + calc_y(pos), z + calc_z(pos)}
   end
 
   def calc_x({x, y, _z}) do
@@ -83,8 +83,8 @@ defmodule Lorenz do
     update(new_pos, iter - 1, acc ++ [new_pos])
   end
 
-  def calc_update(pos) do
-    {calc_x(pos), calc_y(pos), calc_z(pos)}
+  def calc_update({x, y, z} = pos) do
+    {D.add(calc_x(pos), x), D.add(calc_y(pos), y), D.add(calc_z(pos), z)}
   end
 
   def calc_x({x, y, _z}) do
@@ -103,5 +103,6 @@ end
 ```
 
 ```elixir
-Lorenz.update({1, 1, 1}, 20, [])
+one = Decimal.from_float(1.0)
+Lorenz.update({one, one, one}, 20, [])
 ```
