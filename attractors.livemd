@@ -108,3 +108,53 @@ end
 one = Decimal.from_float(1.0)
 Lorenz.update({one, one, one}, 20, [])
 ```
+
+The problem with this is the implicit $${dt}$$ which is "1" in the above - which is a massive time step in calculus the delta means an infinitesimal change,
+So for a first attempt we can add a delta_t param and do some rough calculations.
+
+```elixir
+defmodule Lorenz do
+  alias Decimal, as: D
+
+  @sigma 10
+  @rho 28
+  @beta Decimal.from_float(8 / 3)
+  @delta_t Decimal.from_float(0.002)
+
+  def update(_pos, 0, acc) do
+    acc
+  end
+
+  def update(pos, iter, acc) do
+    new_pos = calc_update(pos)
+    IO.inspect(iter)
+    IO.inspect(new_pos)
+    update(new_pos, iter - 1, acc ++ [new_pos])
+  end
+
+  def calc_update({x, y, z} = pos) do
+    dx = D.mult(calc_x(pos), @delta_t)
+    dy = D.mult(calc_y(pos), @delta_t)
+    dz = D.mult(calc_z(pos), @delta_t)
+    {D.add(dx, x), D.add(dy, y), D.add(dz, z)}
+  end
+
+  def calc_x({x, y, _z}) do
+    D.mult(@sigma, D.sub(y, x))
+  end
+
+  def calc_y({x, y, z}) do
+    rhoz = D.sub(@rho, z)
+    D.sub(D.mult(x, rhoz), y)
+  end
+
+  def calc_z({x, y, z}) do
+    D.sub(D.mult(x, y), D.mult(@beta, z))
+  end
+end
+```
+
+```elixir
+one = Decimal.from_float(1.0)
+Lorenz.update({one, one, one}, 150, [])
+```
