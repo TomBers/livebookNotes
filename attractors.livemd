@@ -193,7 +193,7 @@ defmodule Lorenz do
 
   def update(pos, iter, vl_widget) do
     {x, y, z} = calc_update(pos)
-    Kino.VegaLite.push(vl_widget, %{x: 10.0, y: 20.0}, window: 100)
+    Kino.VegaLite.push(vl_widget, %{x: D.to_float(x), y: D.to_float(y)})
     update({x, y, z}, iter - 1, vl_widget)
   end
 
@@ -221,5 +221,5 @@ end
 
 ```elixir
 one = Decimal.from_float(1.0)
-Lorenz.update({one, one, one}, 10, vl_widget)
+Lorenz.update({one, one, one}, 200, vl_widget)
 ```
