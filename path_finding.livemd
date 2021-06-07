@@ -1,0 +1,15 @@
+# Pathfinding
+
+## A* Path finding algorithm
+
+### Why?
+
+Path finding is all about finding a route through a maze.  From a given start point to a given end point.  It will find its way past obsticles, and discover the most direct route.
+
+This has applications in a number of areas from computer games to real world directions.
+
+[Background](https://en.wikipedia.org/wiki/A*_search_algorithm)
+
+## The Maze
+
+We want to think about how we go about representing a maze.  It will be a 2-D grid with an x, y value, and indicators for walls, start and end point.
