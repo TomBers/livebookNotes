@@ -221,5 +221,5 @@ end
 
 ```elixir
 one = Decimal.from_float(1.0)
-Lorenz.update({one, one, one}, 200, vl_widget)
+Lorenz.update({one, one, one}, 1000, vl_widget)
 ```
