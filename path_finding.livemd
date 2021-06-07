@@ -13,3 +13,88 @@ This has applications in a number of areas from computer games to real world dir
 ## The Maze
 
 We want to think about how we go about representing a maze.  It will be a 2-D grid with an x, y value, and indicators for walls, start and end point.
+
+Just like the Game of Life example, lets try having a structure for the cells and one for the maze.
+
+```elixir
+defmodule Cell do
+  defstruct x: nil, y: nil, type: nil
+
+  @wall_type :wall
+  @end_type :end_cell
+  @start_type :start_cell
+
+  def wall_type do
+    @wall_type
+  end
+
+  def end_type do
+    @end_type
+  end
+
+  def is_wall(cell) do
+    cell.type == @wall_type
+  end
+
+  def is_end(cell) do
+    cell.type == @end_type
+  end
+
+  def is_start(cell) do
+    cell.type == @start_type
+  end
+end
+```
+
+```elixir
+defmodule Maze do
+  defstruct cells: [], x: 0, y: 0
+
+  def initialise_maze(x, y, start_coords, end_coords, walls) do
+    cells =
+      for i <- y..1,
+          j <- 1..x,
+          do: %Cell{x: i, y: j, type: find_type({j, i}, start_coords, end_coords, walls)}
+
+    %Maze{x: x, y: y, cells: cells}
+  end
+
+  def find_type(current, start_coords, _end_coords, _walls) when current == start_coords do
+    :start_cell
+  end
+
+  def find_type(current, _start_coords, end_coords, _walls) when current == end_coords do
+    :end_cell
+  end
+
+  def find_type(current, _start_coords, _end_coords, walls) do
+    if Enum.any?(walls, fn x -> x == current end) do
+      :wall
+    else
+      nil
+    end
+  end
+
+  def print_maze(maze) do
+    maze.cells
+    |> Enum.map(fn x -> draw_cell(x) end)
+    |> Enum.chunk_every(maze.x)
+  end
+
+  def draw_cell(cell) do
+    case cell.type do
+      :wall -> "⬛️"
+      :end_cell -> "🌟"
+      :start_cell -> "🟢"
+      _ -> "⬜️"
+    end
+  end
+end
+```
+
+Lets start with a simple 10 by 10 board and initialise it with empty cells.
+
+```elixir
+Maze.initialise_maze(8, 8, {2, 2}, {7, 6}, [{3, 3}, {3, 4}, {4, 4}])
+|> Maze.print_maze()
+```
