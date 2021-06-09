@@ -364,9 +364,9 @@ B) Switch it to the closed list.
 
 C) For each of the 8 squares adjacent to this current square
 
-If it is not walkable or if it is on the closed list, ignore it. Otherwise do the following.
-If it isn’t on the open list, add it to the open list. Make the current square the parent of this square. Record the F, G, and H costs of the square.
-If it is on the open list already, check to see if this path to that square is better, using G cost as the measure. A lower G cost means that this is a better path. If so, change the parent of the square to the current square, and recalculate the G and F scores of the square. If you are keeping your open list sorted by F score, you may need to resort the list to account for the change.
+* If it is not walkable or if it is on the closed list, ignore it. Otherwise do the following.
+* If it isn’t on the open list, add it to the open list. Make the current square the parent of this square. Record the F, G, and H costs of the square.
+* If it is on the open list already, check to see if this path to that square is better, using G cost as the measure. A lower G cost means that this is a better path. If so, change the parent of the square to the current square, and recalculate the G and F scores of the square. If you are keeping your open list sorted by F score, you may need to resort the list to account for the change.
 
 ```elixir
 defmodule RunMaze do
@@ -380,7 +380,7 @@ defmodule RunMaze do
 
   # End conditon - an empty open_list
   def iterate(_maze, [], _closed_list, path) do
-    IO.inspect(length(path))
+    IO.inspect("Number fo steps : #{length(path)}")
     path
   end
 
@@ -435,6 +435,8 @@ defmodule RunMaze do
   end
 
   def should_add_cell(cell, open_list, closed_list) do
+    # If it is not walkable or if it is on the closed list, ignore it. If it isn’t on the open list 
+    # add it to the open list.
     if !is_in_list(cell, open_list) and Cell.is_walkable?(cell) and !is_in_list(cell, closed_list) do
       cell
     else
@@ -451,3 +453,12 @@ end
 ```elixir
 Maze.initialise_maze(8, 8, {1, 1}, {8, 8}, [{3, 3}]) |> RunMaze.run()
 ```
+
+Note: This is not a complete implementation.
+
+Instead of the step -
+
+* If it is on the open list already, check to see if this path to that square is better, using G cost as the measure. A lower G cost means that this is a better path. If so, change the parent of the square to the current square, and recalculate the G and F scores of the square. If you are keeping your open list sorted by F score, you may need to resort the list to account for the change
+
+We just look at the "best" node from the open list and head in that direction.\
+I may come back to this in the future.  It would be good to visualise the path, by showing the nodes visited.  Thsi would mean a new node type and updating the node in the maze list to reflect the new status.
