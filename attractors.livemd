@@ -1,0 +1,225 @@
+# Attractors
+
+## Background
+
+This example is looking at implementing a Lorenz 'strange' attactor.  It is notable for having chaotic solutions for certain parameter values and initial conditions.
+
+The equations are quite simple and can be implemented quite easily in a recursive function.
+
+For examples see - [Wikipedia, Lorenz System](https://en.wikipedia.org/wiki/Lorenz_system)
+
+## The Equations
+
+In a three dimensional space $${x,y,z} $$ each value is dimension is updated by the following formulas:
+$$ \frac{dx}{dt} = \sigma(y-x)$$
+$$ \frac{dy}{dt} = x(\rho -z) -y$$
+$$ \frac{dz}{dt} = xy - \beta z$$
+
+*note in the following code $$\sigma (sigma) $$ $$\rho (rho)$$  $$\beta (beta) $$
+
+```elixir
+defmodule Lorenz do
+  @sigma 10.0
+  @rho 28.0
+  @beta 8.0 / 3.0
+
+  def update(_pos, 0, acc) do
+    acc
+  end
+
+  def update(pos, iter, acc) do
+    new_pos = calc_update(pos)
+    update(new_pos, iter - 1, acc ++ [new_pos])
+  end
+
+  def calc_update({x, y, z} = pos) do
+    {x + calc_x(pos), y + calc_y(pos), z + calc_z(pos)}
+  end
+
+  def calc_x({x, y, _z}) do
+    @sigma * (y - x)
+  end
+
+  def calc_y({x, y, z}) do
+    x * (@rho - z) - y
+  end
+
+  def calc_z({x, y, z}) do
+    x * y - @beta * z
+  end
+end
+```
+
+Lets try it out - lets start with a sample point {1, 1, 1} and run for 20 iterations
+
+```elixir
+Lorenz.update({1, 1, 1}, 20, [])
+```
+
+We have come up with a problem - Elixir does not support arbitary precision floats, so we have some issues with the above implementation, but help is at hand.
+
+The [Decimal package](https://github.com/ericmj/decimal) lets try and implement our module with that library.  First it needs to be installed.
+
+```elixir
+Mix.install([
+  {:decimal, "~> 2.0"},
+  {:vega_lite, "~> 0.1.0"},
+  {:kino, "~> 0.1.0"}
+])
+
+# The graphing deps are installed here that will be used later
+```
+
+```elixir
+defmodule Lorenz do
+  alias Decimal, as: D
+
+  @sigma 10
+  @rho 28
+  @beta Decimal.from_float(8 / 3)
+
+  def update(_pos, 0, acc) do
+    acc
+  end
+
+  def update(pos, iter, acc) do
+    new_pos = calc_update(pos)
+    IO.inspect(iter)
+    IO.inspect(new_pos)
+    update(new_pos, iter - 1, acc ++ [new_pos])
+  end
+
+  def calc_update({x, y, z} = pos) do
+    {D.add(calc_x(pos), x), D.add(calc_y(pos), y), D.add(calc_z(pos), z)}
+  end
+
+  def calc_x({x, y, _z}) do
+    D.mult(@sigma, D.sub(y, x))
+  end
+
+  def calc_y({x, y, z}) do
+    rhoz = D.sub(@rho, z)
+    D.sub(D.mult(x, rhoz), y)
+  end
+
+  def calc_z({x, y, z}) do
+    D.sub(D.mult(x, y), D.mult(@beta, z))
+  end
+end
+```
+
+```elixir
+one = Decimal.from_float(1.0)
+Lorenz.update({one, one, one}, 20, [])
+```
+
+The problem with this is the implicit $${dt}$$ which is "1" in the above - which is a massive time step in calculus the delta means an infinitesimal change,
+So for a first attempt we can add a delta_t param and do some rough calculations.
+
+```elixir
+defmodule Lorenz do
+  alias Decimal, as: D
+
+  @sigma 10
+  @rho 28
+  @beta Decimal.from_float(8 / 3)
+  @delta_t Decimal.from_float(0.002)
+
+  def update(_pos, 0, acc) do
+    acc
+  end
+
+  def update(pos, iter, acc) do
+    new_pos = calc_update(pos)
+    IO.inspect(iter)
+    IO.inspect(new_pos)
+    update(new_pos, iter - 1, acc ++ [new_pos])
+  end
+
+  def calc_update({x, y, z} = pos) do
+    dx = D.mult(calc_x(pos), @delta_t)
+    dy = D.mult(calc_y(pos), @delta_t)
+    dz = D.mult(calc_z(pos), @delta_t)
+    {D.add(dx, x), D.add(dy, y), D.add(dz, z)}
+  end
+
+  def calc_x({x, y, _z}) do
+    D.mult(@sigma, D.sub(y, x))
+  end
+
+  def calc_y({x, y, z}) do
+    rhoz = D.sub(@rho, z)
+    D.sub(D.mult(x, rhoz), y)
+  end
+
+  def calc_z({x, y, z}) do
+    D.sub(D.mult(x, y), D.mult(@beta, z))
+  end
+end
+```
+
+```elixir
+one = Decimal.from_float(1.0)
+Lorenz.update({one, one, one}, 150, [])
+```
+
+Lets try adding a Graph to see the output, so instead of printing the values out we will plot the x, y co-ords on a graph and see if we get anything interesting.
+
+```elixir
+alias VegaLite, as: Vl
+```
+
+```elixir
+vl_widget =
+  Vl.new(width: 400, height: 400)
+  |> Vl.mark(:point)
+  |> Vl.encode_field(:x, "x", type: :quantitative)
+  |> Vl.encode_field(:y, "y", type: :quantitative)
+  |> Kino.VegaLite.start()
+```
+
+```elixir
+defmodule Lorenz do
+  alias Decimal, as: D
+
+  @sigma 10
+  @rho 28
+  @beta Decimal.from_float(8 / 3)
+  @delta_t Decimal.from_float(0.002)
+
+  def update(_pos, 0, _w) do
+    :ok
+  end
+
+  def update(pos, iter, vl_widget) do
+    {x, y, z} = calc_update(pos)
+    Kino.VegaLite.push(vl_widget, %{x: D.to_float(x), y: D.to_float(y)})
+    update({x, y, z}, iter - 1, vl_widget)
+  end
+
+  def calc_update({x, y, z} = pos) do
+    dx = D.mult(calc_x(pos), @delta_t)
+    dy = D.mult(calc_y(pos), @delta_t)
+    dz = D.mult(calc_z(pos), @delta_t)
+    {D.add(dx, x), D.add(dy, y), D.add(dz, z)}
+  end
+
+  def calc_x({x, y, _z}) do
+    D.mult(@sigma, D.sub(y, x))
+  end
+
+  def calc_y({x, y, z}) do
+    rhoz = D.sub(@rho, z)
+    D.sub(D.mult(x, rhoz), y)
+  end
+
+  def calc_z({x, y, z}) do
+    D.sub(D.mult(x, y), D.mult(@beta, z))
+  end
+end
+```
+
+```elixir
+one = Decimal.from_float(1.0)
+Lorenz.update({one, one, one}, 1000, vl_widget)
+```
