@@ -1,0 +1,29 @@
+# Input test
+
+## Testing how the Inputs work with Livebook
+
+<!-- livebook:{"livebook_object":"cell_input","name":"name","type":"text","value":"hello world"} -->
+
+```elixir
+IO.gets("name") |> IO.puts()
+```
+
+<!-- livebook:{"livebook_object":"cell_input","name":"integer","type":"text","value":"5"} -->
+
+```elixir
+{num, _fluf} = IO.gets("integer") |> Integer.parse()
+num
+```
+
+```elixir
+Mix.install([
+  {:httpoison, "~> 1.8"}
+])
+```
+
+<!-- livebook:{"livebook_object":"cell_input","name":"url","type":"url","value":"https://fmzn.shop/api/random"} -->
+
+```elixir
+url = IO.gets("url") |> String.trim()
+HTTPoison.get(url)
+```
