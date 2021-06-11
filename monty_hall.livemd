@@ -15,7 +15,7 @@ The plan is to simulate the game and test the results.  We need to model the gam
 
 ```elixir
 defmodule MontyHall do
-  defstruct door_1: nil, door_2: nil, door_3: nil
+  defstruct door_1: nil, door_2: nil, door_3: nil, initial_guess: nil
 end
 ```
 
@@ -69,39 +69,84 @@ We now need a function that can run alot of games, take a contestants guess and 
 
 ```elixir
 defmodule PlayMH do
-  def open_door(game, guess_index) do
-    guess(game, guess_index)
+  def guess(game) do
+    guess(game, Enum.random([1, 2, 3]))
   end
 
-  defp guess(game, indx) when idx == 1 do
+  def guess(game, guess) when guess == 1 do
     {da, db} = open_door(game.door_2, game.door_3)
-    %MontyHall{door_1: game.door_1, door_2: da, door_3: db}
+    %MontyHall{door_1: game.door_1, door_2: da, door_3: db, initial_guess: 1}
   end
 
-  defp guess(game, indx) when idx == 2 do
+  def guess(game, guess) when guess == 2 do
     {da, db} = open_door(game.door_1, game.door_3)
-    %MontyHall{door_1: da, door_2: game.door_2, door_3: db}
+    %MontyHall{door_1: da, door_2: game.door_2, door_3: db, initial_guess: 2}
   end
 
-  defp guess(game, indx) when idx == 3 do
+  def guess(game, guess) when guess == 3 do
     {da, db} = open_door(game.door_1, game.door_2)
-    %MontyHall{door_1: da, door_2: db, door_3: game.door_3}
+    %MontyHall{door_1: da, door_2: db, door_3: game.door_3, initial_guess: 3}
   end
 
   # So there are 3 possibilites
   # A - Goat, B - Car
   # A - Car, B - Goat
   # A - Goat, B - Goat
-  def open_door(da, db) when da == :goat and db == :car do
+  defp open_door(da, db) when da == :goat and db == :car do
     {:open, db}
   end
 
-  def open_door(da, db) when da == :car and db == :goat do
+  defp open_door(da, db) when da == :car and db == :goat do
     {da, :open}
   end
 
-  def open_door(da, db) do
+  defp open_door(_da, db) do
     {:open, db}
   end
 end
 ```
+
+```elixir
+# Lets give it a shot, we should expect that Door 1 is never opened, but either 2 or 3 are.
+
+GenerateMH.gen_random() |> PlayMH.guess(1)
+```
+
+We have the basis for a test - we can now look at how many times the contestant would win if they stick with their choice and how often they win when they change.
+
+```elixir
+defmodule EvaluateGame do
+  def calc_percent(games) do
+    won = games |> Enum.count(fn game -> eval(game) == true end)
+    won / length(games)
+  end
+
+  def eval(game) do
+    case game.initial_guess do
+      1 -> would_win(game.door_1)
+      2 -> would_win(game.door_2)
+      3 -> would_win(game.door_3)
+    end
+  end
+
+  def would_win(door) when door == :car do
+    true
+  end
+
+  def would_win(_door) do
+    false
+  end
+end
+```
+
+```elixir
+1..1000
+|> Enum.map(fn _x -> GenerateMH.gen_random() |> PlayMH.guess() end)
+|> EvaluateGame.calc_percent()
+```
+
+## WTF??
+
+So we seem to be converging on a probability of 1/3 (the more games you run, the close it will get to a third)
+
+Does this make intuitive sense? What is going on?
