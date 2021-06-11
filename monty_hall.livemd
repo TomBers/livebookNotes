@@ -151,3 +151,9 @@ end
 So we seem to be converging on a probability of 1/3 (the more games you run, the close it will get to a third)
 
 Does this make intuitive sense? What is going on?
+
+A good description can be found [here](https://www.reddit.com/r/slatestarcodex/comments/nvv4ts/slick_tricks_for_tricky_dicks/h17krvw/)
+
+> You pick a door with a goat originally and you switch. What do you have? A car. Suppose you don't switch. What do you have? A goat.
+> So if you pick a goat originally, then switching gets a car and not switching gets a goat.
+> The only relevant question then, is what is the probability that you picked a goat originally? (2/3rds)
