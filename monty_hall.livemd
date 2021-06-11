@@ -1,0 +1,107 @@
+# Monty Hall problem
+
+## What is the Monty Hall problem
+
+Suppose you're on a game show, and you're given the choice of three doors:
+
+* Behind one door is a car;
+* behind the others, goats.
+
+You pick a door, say No. 1, and the host, who knows what's behind the doors, opens another door, say No. 3, which has a goat. He then says to you, "Do you want to pick door No. 2?" Is it to your advantage to switch your choice?
+
+## Lets run a few rounds and see?
+
+The plan is to simulate the game and test the results.  We need to model the game, the host knowing the door and the contestant picking a choice.  Then just calculate the number of times the contesant wins.
+
+```elixir
+defmodule MontyHall do
+  defstruct door_1: nil, door_2: nil, door_3: nil
+end
+```
+
+```elixir
+defimpl Inspect, for: MontyHall do
+  def inspect(%MontyHall{door_1: d1, door_2: d2, door_3: d3}, _) do
+    """
+    #Game<Door1: #{draw_symbol(d1)} Door2: #{draw_symbol(d2)} Door3: #{draw_symbol(d3)}>\
+    """
+  end
+
+  defp draw_symbol(d) when d == :car do
+    "🏎"
+  end
+
+  defp draw_symbol(d) when d == :open do
+    "🪤"
+  end
+
+  defp draw_symbol(_d) do
+    "🐐"
+  end
+end
+```
+
+```elixir
+%MontyHall{door_1: :goat, door_2: :car, door_3: :goat}
+```
+
+We have a way of drawing the game, so lets look at generating a random game board.
+
+```elixir
+defmodule GenerateMH do
+  def gen_random do
+    case Enum.random([1, 2, 3]) do
+      1 -> %MontyHall{door_1: :car, door_2: :goat, door_3: :goat}
+      2 -> %MontyHall{door_1: :goat, door_2: :car, door_3: :goat}
+      3 -> %MontyHall{door_1: :goat, door_2: :goat, door_3: :car}
+    end
+  end
+end
+```
+
+```elixir
+GenerateMH.gen_random()
+```
+
+We now have a way of generating lots of games.
+
+We now need a function that can run alot of games, take a contestants guess and return the new game when the host has opened the door.
+
+```elixir
+defmodule PlayMH do
+  def open_door(game, guess_index) do
+    guess(game, guess_index)
+  end
+
+  defp guess(game, indx) when idx == 1 do
+    {da, db} = open_door(game.door_2, game.door_3)
+    %MontyHall{door_1: game.door_1, door_2: da, door_3: db}
+  end
+
+  defp guess(game, indx) when idx == 2 do
+    {da, db} = open_door(game.door_1, game.door_3)
+    %MontyHall{door_1: da, door_2: game.door_2, door_3: db}
+  end
+
+  defp guess(game, indx) when idx == 3 do
+    {da, db} = open_door(game.door_1, game.door_2)
+    %MontyHall{door_1: da, door_2: db, door_3: game.door_3}
+  end
+
+  # So there are 3 possibilites
+  # A - Goat, B - Car
+  # A - Car, B - Goat
+  # A - Goat, B - Goat
+  def open_door(da, db) when da == :goat and db == :car do
+    {:open, db}
+  end
+
+  def open_door(da, db) when da == :car and db == :goat do
+    {da, :open}
+  end
+
+  def open_door(da, db) do
+    {:open, db}
+  end
+end
+```
