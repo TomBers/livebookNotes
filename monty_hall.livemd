@@ -1,6 +1,6 @@
 # Monty Hall problem
 
-## What is the Monty Hall problem
+## What is the Monty Hall problem?
 
 Suppose you're on a game show, and you're given the choice of three doors:
 
@@ -11,7 +11,7 @@ You pick a door, say No. 1, and the host, who knows what's behind the doors, ope
 
 ## Lets run a few rounds and see?
 
-The plan is to simulate the game and test the results.  We need to model the game, the host knowing the door and the contestant picking a choice.  Then just calculate the number of times the contesant wins.
+The plan is to simulate the game and test the results.  We need to model the game, the host knowing the door and the contestant picking a choice.  Then just calculate the number of times the contestant wins.
 
 ```elixir
 defmodule MontyHall do
@@ -20,10 +20,11 @@ end
 ```
 
 ```elixir
+# A implement an inspect method so we can print the game in a pretty way
 defimpl Inspect, for: MontyHall do
   def inspect(%MontyHall{door_1: d1, door_2: d2, door_3: d3}, _) do
     """
-    #Game<Door1: #{draw_symbol(d1)} Door2: #{draw_symbol(d2)} Door3: #{draw_symbol(d3)}>\
+    <Door1: #{draw_symbol(d1)} Door2: #{draw_symbol(d2)} Door3: #{draw_symbol(d3)}>\
     """
   end
 
