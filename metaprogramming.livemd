@@ -1,0 +1,30 @@
+# Metaprogramming
+
+## WTF?
+
+
+
+## Goal - a pop-where func
+
+So looking at the List docs for [pop_at](https://hexdocs.pm/elixir/1.12/List.html#pop_at/3) there is a method for getting an element at a index and returning the value as well as the list without that element.
+
+```elixir
+List.pop_at([1, 2, 3], 0)
+```
+
+With other projects I have wanted to pop from an array where the element matches a certain criteria.  So we could have a function that first finds the index then pops that.
+
+```elixir
+defmodule Pop do
+  def find_and_pop(list, val) do
+    indx = Enum.find_index(list, fn x -> x == val end)
+    List.pop_at(list, indx)
+  end
+end
+```
+
+```elixir
+Pop.find_and_pop([1, 2, 3], 2)
+```
+
+Nice! So it does what we want, but it is not the most elegant code.  Lets see where we can get with metaprogramming to actually extend the language.
