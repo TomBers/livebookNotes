@@ -28,3 +28,20 @@ Pop.find_and_pop([1, 2, 3], 2)
 ```
 
 Nice! So it does what we want, but it is not the most elegant code.  Lets see where we can get with metaprogramming to actually extend the language.
+
+```elixir
+defmodule PopMacro do
+  defmacro find_pop(list, val) do
+    IO.inspect(quote do: List.pop_at(list, Enum.find_index(list, fn x -> x == val end)))
+
+    quote do
+      List.pop_at(unquote(list), Enum.find_index(unquote(list), fn x -> x == unquote(val) end))
+    end
+  end
+end
+```
+
+```elixir
+require PopMacro
+PopMacro.find_pop([1, 2, 3], 2)
+```
