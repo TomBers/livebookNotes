@@ -2,8 +2,6 @@
 
 ## WTF?
 
-
-
 ## Goal - a pop-where func
 
 So looking at the List docs for [pop_at](https://hexdocs.pm/elixir/1.12/List.html#pop_at/3) there is a method for getting an element at a index and returning the value as well as the list without that element.
@@ -29,6 +27,9 @@ Pop.find_and_pop([1, 2, 3], 2)
 
 Nice! So it does what we want, but it is not the most elegant code.  Lets see where we can get with metaprogramming to actually extend the language.
 
+N.b - I actaully looked at how pop_at is implemented in Elixir - [see](https://github.com/elixir-lang/elixir/blob/master/lib/elixir/lib/list.ex).
+It uses a recursive function to go through the list, if I were to implement find_and_pop, it would use something similar.
+
 ```elixir
 defmodule PopMacro do
   defmacro find_pop(list, val) do
@@ -44,4 +45,83 @@ end
 ```elixir
 require PopMacro
 PopMacro.find_pop([1, 2, 3], 2)
+```
+
+## New direction
+
+I don't really know what to do with the above output, so I might go through some more basic exercises from [Metaprogramming Elixir](https://pragprog.com/titles/cmelixir/metaprogramming-elixir/) by Chris McCord until the concept clicks.
+
+We need a task that would be hard or impossible without metaprogramming but is easy with it. To grok it, I am going to follow the accepted approach and start with the Abstract Syntax Treen (AST).
+
+## AST
+
+“When your programs are compiled or interpreted, their source is transformed into a tree structure before being turned into bytecode or machine code.”
+
+Excerpt From: Chris McCord. “Metaprogramming Elixir”. Apple Books.
+
+Lets see some examples
+
+```elixir
+IO.inspect(quote do: 2 + 4)
+IO.puts("-----")
+IO.inspect(quote do: div(10, 2))
+IO.puts("-----")
+IO.inspect(quote do: List.first([1, 2, 3]))
+```
+
+I have thought about a new way of thinking about meta-programming.  In pure Elixir we can pass values or functions to other functions, meta-programming can be thought about passing a whole block to work with.
+
+Lets try again at this executing of code blocks.  One feature that Elixir does not include is an if, elseif, else structure.
+This is because there are better ways to implement, but lets try adding it.
+
+```elixir
+if 1 == 2 do
+  "If was true"
+else
+  "Else entered"
+end
+```
+
+```elixir
+# Lets look at how Elixir represents the if and else (macros)
+
+IO.inspect(quote do: if)
+# We cannot actually unquote this 
+# IO.inspect(quote do: else)
+```
+
+I looked at how the Elixir core language implemented its if else logic you can find the Kernal code [here](https://github.com/elixir-lang/elixir/blob/master/lib/elixir/lib/kernel.ex#L3608)
+
+```elixir
+defmodule ControlFlow do
+  defmacro ifelse(expression,
+             do: block,
+             elseif: ifelseexpression,
+             do: second_block,
+             else: else_block
+           ) do
+    quote do
+      case ControlFlow.test_conditions(unquote(expression), unquote(ifelseexpression)) do
+        1 -> unquote(block)
+        2 -> unquote(second_block)
+        _ -> unquote(else_block)
+      end
+    end
+  end
+
+  def test_conditions(true, _b), do: 1
+  def test_conditions(false, true), do: 2
+  def test_conditions(_a, _b), do: nil
+end
+```
+
+```elixir
+require ControlFlow
+
+ControlFlow.ifelse(4 == 3,
+  do: IO.inspect("first block"),
+  elseif: 3 == 3,
+  do: IO.inspect("Else if block"),
+  else: IO.inspect("Else block")
+)
 ```
