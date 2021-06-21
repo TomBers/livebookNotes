@@ -40,7 +40,7 @@ defmodule GenCounter do
 
   # ----------------------
 
-  # Handle Events - either expecting a result - call or not cast
+  # Handle Events - either expecting a result (call) or not (cast)
   def handle_cast(:inc, state) do
     {:noreply, state + 1}
   end
