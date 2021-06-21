@@ -1,0 +1,69 @@
+# Gen Server
+
+## What? Why?
+
+Describe why Elixir use the GenServer and compare to object orientated model proposed by Alan Kay [see](https://medium.com/javascript-scene/the-forgotten-history-of-oop-88d71b9b2d9f)
+
+```elixir
+defmodule GenCounter do
+  use GenServer
+
+  # Public interfaces
+  def inc(pid, n \\ 1) do
+    1..n
+    |> Enum.map(fn _x -> GenServer.cast(pid, :inc) end)
+  end
+
+  def dec(pid, n \\ 1) do
+    1..n
+    |> Enum.map(fn _x -> GenServer.cast(pid, :dec) end)
+  end
+
+  def val(pid) do
+    GenServer.call(pid, :val)
+  end
+
+  def print(pid) do
+    val(pid) |> IO.inspect()
+  end
+
+  # ---------------------
+
+  # Initialise 
+  def start_link(initial) do
+    GenServer.start_link(__MODULE__, initial)
+  end
+
+  def init(init_arg) do
+    {:ok, init_arg}
+  end
+
+  # ----------------------
+
+  # Handle Events - either expecting a result - call or not cast
+  def handle_cast(:inc, state) do
+    {:noreply, state + 1}
+  end
+
+  def handle_cast(:dec, state) do
+    {:noreply, state - 1}
+  end
+
+  def handle_call(:val, _from, state) do
+    {:reply, state, state}
+  end
+end
+```
+
+```elixir
+{:ok, counter_pid} = GenCounter.start_link(4)
+GenCounter.print(counter_pid)
+
+GenCounter.inc(counter_pid, 10)
+
+GenCounter.print(counter_pid)
+
+GenCounter.dec(counter_pid, 4)
+
+GenCounter.print(counter_pid)
+```
