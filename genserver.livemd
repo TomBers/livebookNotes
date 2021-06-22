@@ -80,7 +80,7 @@ Object-orientation is considered by some the pinicle of programming abstraction.
 > Object-oriented programming (OOP) is a programming paradigm based on the concept of "objects", which can contain data and code: data in the form of fields (often known as attributes or properties), and code, in the form of procedures (often known as methods).
 > A feature of objects is that an object's own procedures can access and often modify the data fields of itself (objects have a notion of this or self). In OOP, computer programs are designed by making them out of objects that interact with one another.
 
-Describe why Elixir use the GenServer and compare to object orientated model proposed by Alan Kay [see](https://medium.com/javascript-scene/the-forgotten-history-of-oop-88d71b9b2d9f)
+* Add commentry
 
 ```elixir
 defmodule User do
@@ -134,6 +134,8 @@ User.get_user(user)
 ```
 
 Genserver as an object?
+
+Lets compare a GenServer to object orientated model proposed by Alan Kay -  [the forgotten history of OOP](https://medium.com/javascript-scene/the-forgotten-history-of-oop-88d71b9b2d9f)
 
 > “OOP to me means only messaging, local retention and protection and hiding of state-process, and extreme late-binding of all things.”
 > ~ Alan Kay
