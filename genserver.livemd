@@ -2,7 +2,9 @@
 
 ## What? Why?
 
-Describe why Elixir use the GenServer and compare to object orientated model proposed by Alan Kay [see](https://medium.com/javascript-scene/the-forgotten-history-of-oop-88d71b9b2d9f)
+Lets start out with a simple example, we want a counter with an inc and dec method and a way of getting the current value.
+
+This will combine both async and synchronous data access methods and provide a simple interface.
 
 ```elixir
 defmodule GenCounter do
@@ -66,4 +68,104 @@ GenCounter.print(counter_pid)
 GenCounter.dec(counter_pid, 4)
 
 GenCounter.print(counter_pid)
+```
+
+## GenServers as Objects?
+
+A lot of ink and sanity is spilt when discussing objects in a programming context.
+Object-orientation is considered by some the pinicle of programming abstraction.  But what is it?
+
+[Wiki says](https://en.wikipedia.org/wiki/Object-oriented_programming)
+
+> Object-oriented programming (OOP) is a programming paradigm based on the concept of "objects", which can contain data and code: data in the form of fields (often known as attributes or properties), and code, in the form of procedures (often known as methods).
+> A feature of objects is that an object's own procedures can access and often modify the data fields of itself (objects have a notion of this or self). In OOP, computer programs are designed by making them out of objects that interact with one another.
+
+Describe why Elixir use the GenServer and compare to object orientated model proposed by Alan Kay [see](https://medium.com/javascript-scene/the-forgotten-history-of-oop-88d71b9b2d9f)
+
+```elixir
+defmodule User do
+  defstruct name: nil, age: nil, can_access: false
+  use GenServer
+
+  def start_link(name, age) do
+    GenServer.start_link(__MODULE__, %User{name: name, age: age, can_access: can_access?(age)})
+  end
+
+  def init(init_arg) do
+    {:ok, init_arg}
+  end
+
+  def inc_age(pid) do
+    GenServer.cast(pid, :inc_age)
+  end
+
+  def get_user(pid) do
+    GenServer.call(pid, :get_user)
+  end
+
+  def handle_call(:get_user, _from, state) do
+    {:reply, state, state}
+  end
+
+  def handle_cast(:inc_age, %User{name: name, age: age, can_access: _can_access}) do
+    age = age + 1
+    {:noreply, %User{name: name, age: age, can_access: can_access?(age)}}
+  end
+
+  defp can_access?(age) when age >= 18 and age < 50 do
+    true
+  end
+
+  defp can_access?(_age) do
+    false
+  end
+end
+```
+
+```elixir
+{:ok, user} = User.start_link("Bob", 49)
+
+User.get_user(user) |> IO.inspect()
+
+User.inc_age(user)
+User.inc_age(user)
+
+User.get_user(user)
+```
+
+Genserver as an object?
+
+> “OOP to me means only messaging, local retention and protection and hiding of state-process, and extreme late-binding of all things.”
+> ~ Alan Kay
+
+So we have:
+
+* Messaging - we can add both synchronous and async interfaces to talk to our 'object'
+* Local retention - the state is stored and can be modified or retrived
+* Protection - we can restirct the interface to only state we want to be made accessible
+* Hiding of state-process - we do not see how the state is managed, only the interface to it.
+
+The last one - extreme late-binding of all things, I don't fully understand.  If you want to get into it further [Wiki on late binding](https://en.wikipedia.org/wiki/Late_binding) (of course) and a blog on [late binding in elixir](https://blog.noredink.com/post/142689001488/the-most-object-oriented-language)
+
+> The phrase “extreme late-binding of all things” is a way of saying something like, “I want the computer to sort out what code to actually run as the need arises.” In some language that might mean two different kind of objects could have print() methods and the computer decides which one to invoke based on which object the message is sent to.
+
+```elixir
+# As a quick test lets create a couple of users and ensure that there is independance
+
+{:ok, usera} = User.start_link("Bob", 49)
+{:ok, userb} = User.start_link("Zork", 20)
+
+User.get_user(usera) |> IO.inspect()
+User.get_user(userb) |> IO.inspect()
+
+User.inc_age(usera)
+User.inc_age(usera)
+
+User.inc_age(userb)
+User.inc_age(userb)
+
+IO.puts("-------------")
+
+User.get_user(usera) |> IO.inspect()
+User.get_user(userb)
 ```
