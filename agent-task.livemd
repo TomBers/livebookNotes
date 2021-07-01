@@ -1,0 +1,71 @@
+# Agents and Tasks
+
+## Why?
+
+The motivation around Tasks and Agents (and more generally the Elixir language) is to make concurrency easier.\
+Allowing multiple bits of code to be run at the same time without having to wait for each one to end before the next one gets processed.
+
+Lets start by running a simulated long running job and running it sequentially.
+
+```elixir
+defmodule LongRunningCode do
+  def run do
+    # Just pause for 1/2 second
+    :timer.sleep(500)
+    IO.inspect("Done")
+  end
+end
+```
+
+```elixir
+# Lets run this sequentially 5 times (should take 5 * 0.5 - 2.5 secs)
+
+1..5
+|> Enum.map(fn _x -> LongRunningCode.run() end)
+```
+
+If you run that code you can see it takes quite a while.  Lets see how we can improve this (without making the delay shorter)
+
+## Tasks
+
+The Task module is a simple way to run code co-currently.  There a number of ways in Elixir to do this, that allow you to customise a numer of things, but Task offers a simple out of the box approach.
+
+You can check out the [docs](https://hexdocs.pm/elixir/1.12/Task.html)
+
+We will cover 3 ways of using the Task module - start, start_link, and async / await
+
+Because the difference in start and start link involves supervision, I will start with async / await
+
+```elixir
+# Lets start with a simple - run a command and we don't really care about the results
+
+1..5
+|> Enum.map(fn _x -> Task.async(&LongRunningCode.run/0) end)
+```
+
+You should have hopefully seen that the above code returned in about 1/2 second (depending on your system).  Elixir will use the available CPU cores on your machine, in case when you are running on a single core machine (less common nowadays) you might not see the damatic speed increase.
+
+But what if I need to see the results of the code?
+
+This is where we can await the code, so we will slightly modify the long running code to accept a parameter and just return it after a sleep.
+
+```elixir
+defmodule LongRunningCode do
+  def run(n) do
+    # Just pause for 1/2 second
+    :timer.sleep(500)
+    n
+  end
+end
+```
+
+```elixir
+# We now want to run 5 jobs in and add up the returned values
+
+1..5
+|> Enum.map(fn x -> Task.async(fn -> LongRunningCode.run(x) end) end)
+# The async returns a refernce to a process, we can then await that process to complete
+|> Enum.map(fn task -> Task.await(task) end)
+|> IO.inspect()
+|> Enum.sum()
+```

@@ -1,0 +1,23 @@
+# Trying Nx
+
+## Lets try playing with NX in LiveBook
+
+```elixir
+Mix.install([
+  {:exla, "~> 0.1.0-dev", github: "elixir-nx/nx", sparse: "exla"},
+  {:nx, "~> 0.1.0-dev", github: "elixir-nx/nx", sparse: "nx", override: true},
+  {:axon, "~> 0.1.0-dev", github: "elixir-nx/axon"}
+])
+```
+
+```elixir
+t = Nx.tensor([[4, 2], [3, 4]])
+Nx.divide(Nx.exp(t), Nx.sum(Nx.exp(t)))
+```
+
+```elixir
+model =
+  Axon.input({nil, 20})
+  |> Axon.dense(20)
+  |> Axon.dense(10, activation: :softmax)
+```
