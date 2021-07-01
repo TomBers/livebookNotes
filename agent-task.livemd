@@ -32,40 +32,75 @@ The Task module is a simple way to run code co-currently.  There a number of way
 
 You can check out the [docs](https://hexdocs.pm/elixir/1.12/Task.html)
 
-We will cover 3 ways of using the Task module - start, start_link, and async / await
+We will cover 2 ways of using the Task module - start / start_link, and async / await
 
-Because the difference in start and start link involves supervision, I will start with async / await
-
-```elixir
-# Lets start with a simple - run a command and we don't really care about the results
-
-1..5
-|> Enum.map(fn _x -> Task.async(&LongRunningCode.run/0) end)
-```
-
-You should have hopefully seen that the above code returned in about 1/2 second (depending on your system).  Elixir will use the available CPU cores on your machine, in case when you are running on a single core machine (less common nowadays) you might not see the damatic speed increase.
-
-But what if I need to see the results of the code?
-
-This is where we can await the code, so we will slightly modify the long running code to accept a parameter and just return it after a sleep.
+Because the difference in start and start_link involves supervision, I will start with async / await
 
 ```elixir
+# Lets create a new LongRunning code to allow us to do some calculation
 defmodule LongRunningCode do
-  def run(n) do
+  def run(n, print \\ false) do
     # Just pause for 1/2 second
     :timer.sleep(500)
+
+    if print do
+      IO.inspect("#{n} DONE")
+    end
+
     n
   end
 end
 ```
 
+(From the docs)
+
+> Tasks are processes meant to execute one particular action throughout their lifetime, often with little or no communication with other processes.
+
+We are going to create a task for each LongRunningCode call.  This does a little magic.  It starts up a new process (you can think of it as a new computer) and can do any computation you want in Elixir (API calls, Database access, heavy computation etc)
+This will be done on any free CPU.
+
 ```elixir
 # We now want to run 5 jobs in and add up the returned values
 
 1..5
+# Make a task for each value in the range
 |> Enum.map(fn x -> Task.async(fn -> LongRunningCode.run(x) end) end)
 # The async returns a refernce to a process, we can then await that process to complete
 |> Enum.map(fn task -> Task.await(task) end)
 |> IO.inspect()
 |> Enum.sum()
+```
+
+You should have hopefully seen that the above code returned in about 1/2 second (depending on your system).  Elixir will use the available CPU cores on your machine, in case when you are running on a single core machine (less common nowadays) you might not see the damatic speed increase.
+
+### start and start_link
+
+You can think of start (and start_link) as being useful when you do not care about the results of the code and what to fire and forget.
+
+> This should only used when the task is used for side-effects (like I/O) and you have no interest on its results nor if it completes successfully.
+
+Note - start requires a function with zero arity function (a function with no arguments) - you can simply wrap the function you want to run in a fn -> end
+
+```elixir
+# Lets start with start to begin with
+
+1..5
+|> Enum.map(fn x -> Task.start(fn -> LongRunningCode.run(x, true) end) end)
+```
+
+```elixir
+1..5
+|> Enum.map(fn x -> Task.start_link(fn -> LongRunningCode.run(x, true) end) end)
+```
+
+### To supervise or not to supervise??
+
+What distinguishes the start from the start link is the response to failure.  If something in your code blows up, do you want it so restart and try again or accept it is not working?
+
+For different use cases different answers are required.  If it is an API that is failing, is it that the entire service is down and you are best leaving it, or is it a vital bit of information that should should not fail?
+
+Lets start by modifying our long running job to randomly fail 50% of the time.
+
+```elixir
+
 ```
