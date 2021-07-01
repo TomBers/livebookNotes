@@ -1,9 +1,11 @@
-# Agents and Tasks
+# Tasks - simple ways to do alot
 
 ## Why?
 
 The motivation around Tasks and Agents (and more generally the Elixir language) is to make concurrency easier.\
 Allowing multiple bits of code to be run at the same time without having to wait for each one to end before the next one gets processed.
+
+This document is going to focus on Tasks, with more indepth topics - supervision and agents coming later.
 
 Lets start by running a simulated long running job and running it sequentially.
 
