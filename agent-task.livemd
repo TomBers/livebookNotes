@@ -102,5 +102,29 @@ For different use cases different answers are required.  If it is an API that is
 Lets start by modifying our long running job to randomly fail 50% of the time.
 
 ```elixir
+defmodule LongRunningCode do
+  def run(n) do
+    if do_crash?() do
+      raise "Crashed"
+    else
+      # Just pause for 1/2 second
+      :timer.sleep(500)
+      IO.inspect("#{n} DONE")
+    end
+  end
 
+  defp do_crash? do
+    Enum.random([false, true])
+  end
+end
+```
+
+```elixir
+1..5
+|> Enum.map(fn x -> Task.start(fn -> LongRunningCode.run(x) end) end)
+```
+
+```elixir
+1..5
+|> Enum.map(fn x -> Task.start_link(fn -> LongRunningCode.run(x) end) end)
 ```
