@@ -1,0 +1,70 @@
+# Supervision
+
+## Bringing the dead back to life
+
+Example below taken from Programming [Phoenix 1.4 by Chris McCord, Bruce Tate and Jose Valim](https://pragprog.com/titles/phoenix14/programming-phoenix-1-4/)
+
+```elixir
+defmodule CrashCode do
+  use GenServer
+
+  def dec(pid), do: GenServer.cast(pid, :dec)
+
+  def val(pid) do
+    GenServer.call(pid, :val)
+  end
+
+  def start_link(initial_val) do
+    GenServer.start_link(__MODULE__, initial_val)
+  end
+
+  def init(initial_val) do
+    Process.send_after(self(), :tick, 1000)
+    {:ok, initial_val}
+  end
+
+  def handle_info(:tick, val) when val <= 0, do: raise("boom!")
+
+  def handle_info(:tick, val) do
+    IO.puts("tick #{val}")
+    Process.send_after(self(), :tick, 500)
+    {:noreply, val - 1}
+  end
+
+  def handle_cast(:dec, val) do
+    {:noreply, val - 1}
+  end
+
+  def handle_call(:val, _from, val) do
+    {:reply, val, val}
+  end
+end
+```
+
+```elixir
+defmodule InfoSys.Application do
+  @moduledoc false
+
+  use Application
+
+  def start do
+    start(nil, nil)
+  end
+
+  def start(_type, _args) do
+    children = [
+      # new counter worker
+      {CrashCode, 3}
+    ]
+
+    # We can pass params to define how often we restart, either keep trying or set number of tries in a given
+    # time frame - in this case only allow 2 restarts in a 10 second window (for our times we will run 3 times)
+    opts = [name: InfoSys.Supervisor, strategy: :one_for_one, max_restarts: 2, max_seconds: 10]
+    Supervisor.start_link(children, opts)
+  end
+end
+```
+
+```elixir
+InfoSys.Application.start()
+```
