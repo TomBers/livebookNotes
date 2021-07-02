@@ -2,17 +2,18 @@
 
 ## Bringing the dead back to life
 
+One of the most unsual parts of Elixir is the underlying idea of processes and of supervising these processes, so you can do interesting thing like recover from errors and have a level over control over how things get restarted.
+
+We are going to look at an example of writing a GenServer (see other doc) that will count down from an initial value,
+once it hits zero (0) it will intentionally raise an error (killing the process).
+
+We will look at how we can resurrect this server to come back to life and continue working.
+
 Example below taken from Programming [Phoenix 1.4 by Chris McCord, Bruce Tate and Jose Valim](https://pragprog.com/titles/phoenix14/programming-phoenix-1-4/)
 
 ```elixir
 defmodule CrashCode do
   use GenServer
-
-  def dec(pid), do: GenServer.cast(pid, :dec)
-
-  def val(pid) do
-    GenServer.call(pid, :val)
-  end
 
   def start_link(initial_val) do
     GenServer.start_link(__MODULE__, initial_val)
@@ -30,16 +31,15 @@ defmodule CrashCode do
     Process.send_after(self(), :tick, 500)
     {:noreply, val - 1}
   end
-
-  def handle_cast(:dec, val) do
-    {:noreply, val - 1}
-  end
-
-  def handle_call(:val, _from, val) do
-    {:reply, val, val}
-  end
 end
 ```
+
+This is where the magic happens, we create what is known as a Supervisor, this is a process whos job is to observer its children and if something unexpcted happens deals with it.
+
+See [Docs](https://hexdocs.pm/elixir/1.12/Supervisor.html#content)
+
+This is a big topic and worth more indepth study, but the below code will allow you to play with a supervisor and child process.
+Note the `opts` there are a number of ways you can setup your supervisor that will be helpful in different scenarios.
 
 ```elixir
 defmodule InfoSys.Application do
@@ -58,7 +58,8 @@ defmodule InfoSys.Application do
     ]
 
     # We can pass params to define how often we restart, either keep trying or set number of tries in a given
-    # time frame - in this case only allow 2 restarts in a 10 second window (for our times we will run 3 times)
+    # time frame - in this case only allow 2 restarts in a 10 second window (for our example we will run 3 times)
+    # We can extend these params to keep the process running forever
     opts = [name: InfoSys.Supervisor, strategy: :one_for_one, max_restarts: 2, max_seconds: 10]
     Supervisor.start_link(children, opts)
   end
@@ -68,3 +69,11 @@ end
 ```elixir
 InfoSys.Application.start()
 ```
+
+A little note - I tried for a while to setup a similar supervision with restarts with simple `Tasks`.  I didn't have much luck, then came across [this post](https://stackoverflow.com/questions/35426586/how-to-restart-a-supervised-task-that-crashes)
+
+> This module defines a supervisor which can be used to dynamically supervise tasks. Behind the scenes, this module is implemented as a :simple_one_for_one supervisor where the workers are temporary (i.e. they are not restarted after they die).
+
+and
+
+> You should be looking into GenServer and building a pool of workers
