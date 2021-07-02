@@ -19,11 +19,8 @@ Agent.get(agent, fn state -> state end)
 ```
 
 ```elixir
-val = Agent.get_and_update(agent, fn state -> {state, state + 1} end)
-```
-
-```elixir
-Agent.get(agent, fn state -> state end)
+# A little gotcha - this function requires a tuple - the returned value and the new state
+val = Agent.get_and_update(agent, fn state -> {state + 1, state + 1} end)
 ```
 
 ```elixir
