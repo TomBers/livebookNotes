@@ -1,0 +1,31 @@
+# Agents
+
+## A simpler Genserver
+
+An Agent is a way of getting many of the benefits of a Genserver to store state with a simple interface.
+
+You can basically either read the current state, or update it (there is a command to do both at the same time)
+
+```elixir
+{:ok, agent} = Agent.start_link(fn -> 4 end)
+```
+
+```elixir
+Agent.update(agent, fn state -> state + 1 end)
+```
+
+```elixir
+Agent.get(agent, fn state -> state end)
+```
+
+```elixir
+val = Agent.get_and_update(agent, fn state -> {state, state + 1} end)
+```
+
+```elixir
+Agent.get(agent, fn state -> state end)
+```
+
+```elixir
+Agent.stop(agent)
+```
