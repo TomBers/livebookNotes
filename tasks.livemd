@@ -1,0 +1,112 @@
+# Tasks - simple ways to do a lot
+
+## Why?
+
+The motivation around Tasks and Agents (and more generally the Elixir language) is to make concurrency easier.\
+Allowing multiple bits of code to be run at the same time without having to wait for each one to end before the next one gets processed.
+
+This document is going to focus on Tasks, with more indepth topics - supervision and agents coming later.
+
+Lets start by running a simulated long running job and running it sequentially.
+
+```elixir
+# Lets create a new LongRunning code to allow us to do some calculation
+defmodule LongRunningCode do
+  def run(n, print \\ false) do
+    # Just pause for 1/2 second
+    :timer.sleep(500)
+
+    if print do
+      IO.inspect("#{n} DONE")
+    end
+
+    n
+  end
+end
+```
+
+```elixir
+# Lets run this sequentially 5 times (should take 5 * 0.5 - 2.5 secs)
+
+1..5
+|> Enum.map(fn x -> LongRunningCode.run(x, true) end)
+```
+
+If you run that code you can see it takes quite a while.  Lets see how we can improve this (without making the delay shorter)
+
+## Tasks
+
+The Task module is a simple way to run code co-currently.  There a number of ways in Elixir to do this, that allow you to customise a numer of things, but Task offers a simple out of the box approach.
+
+You can check out the [docs](https://hexdocs.pm/elixir/1.12/Task.html)
+
+We will cover 2 ways of using the Task module - start / start_link, and async / await
+
+Because the difference in start and start_link involves supervision, I will start with async / await
+
+(From the docs)
+
+> Tasks are processes meant to execute one particular action throughout their lifetime, often with little or no communication with other processes.
+
+### Async / await example
+
+We are going to create a task for each LongRunningCode call.  This does a little magic.  It starts up a new process (you can think of it as a new computer) and can do any computation you want in Elixir (API calls, Database access, heavy computation etc)
+As this is an atomic piece of processing (it isn't relying on other things to finish first) it can be done on any free resource on your computer (you will notice a big speed up on multi-core machines).
+
+```elixir
+# We now want to run 5 jobs in and add up the returned values
+
+1..5
+# Make a task for each value in the range
+|> Enum.map(fn x -> Task.async(fn -> LongRunningCode.run(x) end) end)
+|> IO.inspect(label: "Tasks")
+# The async returns a refernce to a process, we can then await that process to complete
+|> Enum.map(fn task -> Task.await(task) end)
+|> IO.inspect(label: "each task as a result")
+|> Enum.sum()
+```
+
+You should have hopefully seen that the above code returned in about 1/2 second (depending on your system).  Elixir will use the available CPU cores on your machine, in case when you are running on a single core machine (less common nowadays) you might not see the dramatic speed increase.
+
+The Async starts a new process and returns a process identifier(PID) that is a way of communicating with this process.
+
+The Await takes this process and gets a result. (You can use Async without waiting for the result)
+
+### Task.start
+
+You can think of start as being useful when you do not care about the results of the code and want to fire and forget.
+
+> This should only used when the task is used for side-effects (like I/O) and you have no interest in its results or if it completes successfully.
+
+Examples of jobs where you don't care about the result (speed is more important than accuracy) - Logging, sending recurrent emails.
+I think of it as jobs that will get run again as part of the system operation and the occassional failure of negligable impact.
+
+* Note - start requires a function with zero arity function (a function with no arguments) - you can simply wrap the function you want to run in a fn -> end
+
+```elixir
+# Lets start with start to begin with
+
+1..5
+|> Enum.map(fn x -> Task.start(fn -> LongRunningCode.run(x, true) end) end)
+```
+
+`Task.start` also comes with a Supervised version - `Task.start_link`, this creates a supervised task, but I will cover supervision in a different document.
+
+## Task.Async vs Task.start
+
+### When to use I should choose start over async/await ?
+
+Ultimately it is down to what you need to do.  I have used Task.start to post the results of a REST request to Twitter.
+In the context of a Webserver it means that the request returns very quickly, and the actual work is done in the background.
+We have no guarantee that the Twitter request succeeded, but for certain use cases you can sacrifice this for speed of response. (Trusting the BEAM to do the work in the background)
+
+Async / await is when the calls are in the 'middle' of your logic, where the results are used for futher processing.
+
+However, as we are expecting results, we do have to wait for them, with the maximum speed the time for the longest task to complete.
+From [theerlangist](https://www.theerlangelist.com/article/beyond_taskasync):
+
+> await on results in the order we started the tasks. In some cases, this might not be optimal. For example, imagine that the first task takes 500 ms, while all others take 1 ms. This means that we’ll process the results of short-running tasks only after we handle the slow task.
+
+There is also an issue of reliability
+
+> Finally, you should be aware that async/await pattern takes the all-or-nothing approach. If any task or the master process crashes, all involved processes will be taken down (unless they’re trapping exits)
