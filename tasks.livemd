@@ -1,4 +1,4 @@
-# Tasks - simple ways to do alot
+# Tasks - simple ways to do a lot
 
 ## Why?
 
@@ -59,25 +59,29 @@ As this is an atomic piece of processing (it isn't relying on other things to fi
 1..5
 # Make a task for each value in the range
 |> Enum.map(fn x -> Task.async(fn -> LongRunningCode.run(x) end) end)
+|> IO.inspect(label: "Tasks")
 # The async returns a refernce to a process, we can then await that process to complete
 |> Enum.map(fn task -> Task.await(task) end)
-|> IO.inspect()
+|> IO.inspect(label: "each task as a result")
 |> Enum.sum()
 ```
 
-You should have hopefully seen that the above code returned in about 1/2 second (depending on your system).  Elixir will use the available CPU cores on your machine, in case when you are running on a single core machine (less common nowadays) you might not see the damatic speed increase.
+You should have hopefully seen that the above code returned in about 1/2 second (depending on your system).  Elixir will use the available CPU cores on your machine, in case when you are running on a single core machine (less common nowadays) you might not see the dramatic speed increase.
 
 The Async starts a new process and returns a process identifier(PID) that is a way of communicating with this process.
 
 The Await takes this process and gets a result. (You can use Async without waiting for the result)
 
-### start and start_link
+### Task.start
 
-You can think of start (and start_link) as being useful when you do not care about the results of the code and what to fire and forget.
+You can think of start as being useful when you do not care about the results of the code and want to fire and forget.
 
-> This should only used when the task is used for side-effects (like I/O) and you have no interest on its results nor if it completes successfully.
+> This should only used when the task is used for side-effects (like I/O) and you have no interest in its results or if it completes successfully.
 
-Note - start requires a function with zero arity function (a function with no arguments) - you can simply wrap the function you want to run in a fn -> end
+Examples of jobs where you don't care about the result (speed is more important than accuracy) - Logging, sending recurrent emails.
+I think of it as jobs that will get run again as part of the system operation and the occassional failure of negligable impact.
+
+* Note - start requires a function with zero arity function (a function with no arguments) - you can simply wrap the function you want to run in a fn -> end
 
 ```elixir
 # Lets start with start to begin with
@@ -86,43 +90,23 @@ Note - start requires a function with zero arity function (a function with no ar
 |> Enum.map(fn x -> Task.start(fn -> LongRunningCode.run(x, true) end) end)
 ```
 
-```elixir
-1..5
-|> Enum.map(fn x -> Task.start_link(fn -> LongRunningCode.run(x, true) end) end)
-```
+`Task.start` also comes with a Supervised version - `Task.start_link`, this creates a supervised task, but I will cover supervision in a different document.
 
-### To supervise or not to supervise??
+## Task.Async vs Task.start
 
-What distinguishes the start from the start link is the response to failure.  If something in your code blows up, do you want it so restart and try again or accept it is not working?
+### When to use I should choose start over async/await ?
 
-For different use cases different answers are required.  If it is an API that is failing, is it that the entire service is down and you are best leaving it, or is it a vital bit of information that should should not fail?
+Ultimately it is down to what you need to do.  I have used Task.start to post the results of a REST request to Twitter.
+In the context of a Webserver it means that the request returns very quickly, and the actual work is done in the background.
+We have no guarantee that the Twitter request succeeded, but for certain use cases you can sacrifice this for speed of response. (Trusting the BEAM to do the work in the background)
 
-Lets start by modifying our long running job to randomly fail 50% of the time.
+Async / await is when the calls are in the 'middle' of your logic, where the results are used for futher processing.
 
-```elixir
-defmodule CrashCode do
-  def run(n) do
-    if do_crash?() do
-      :error
-    else
-      IO.inspect("#{n} DONE")
-      n
-    end
-  end
+However, as we are expecting results, we do have to wait for them, with the maximum speed the time for the longest task to complete.
+From [theerlangist](https://www.theerlangelist.com/article/beyond_taskasync):
 
-  defp do_crash? do
-    Enum.random([false, true])
-  end
-end
-```
+> await on results in the order we started the tasks. In some cases, this might not be optimal. For example, imagine that the first task takes 500 ms, while all others take 1 ms. This means that we’ll process the results of short-running tasks only after we handle the slow task.
 
-```elixir
-1..5
-|> Enum.map(fn x -> Task.start(fn -> CrashCode.run(x) end) end)
-```
+There is also an issue of reliability
 
-We can see that the above code will run succssfully a random number of times.  If you keep running it, it will print out between 0 and 5 messages each run.
-
-What we would like is to have some way of knowing if the code was successful and restarting the process if if fails.
-
-As supervision is quite a novel topic, it deserves it's own document (To be written)
+> Finally, you should be aware that async/await pattern takes the all-or-nothing approach. If any task or the master process crashes, all involved processes will be taken down (unless they’re trapping exits)
