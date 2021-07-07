@@ -1,0 +1,13 @@
+# Comparing Nx with plain Elixir for Poissons Eqn
+
+## What is Poissons Eqn?
+
+See [Poisson's Equation is the Most Powerful Tool not yet in your Toolbox](https://mattferraro.dev/posts/poissons-equation)
+
+Before we start on a plain Elixr implementation, I am going to install Nx for later use
+
+```elixir
+Mix.install([
+  {:nx, "~> 0.1.0-dev", github: "elixir-nx/nx", sparse: "nx", override: true}
+])
+```
