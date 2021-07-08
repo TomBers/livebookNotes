@@ -11,3 +11,77 @@ Mix.install([
   {:nx, "~> 0.1.0-dev", github: "elixir-nx/nx", sparse: "nx", override: true}
 ])
 ```
+
+```elixir
+f = [
+  [0, 0, 0, 0, 0, 1],
+  [0, 0, 0, 0, 0, 1],
+  [0, 0, 0, 0, 0, 1],
+  [0, 0, 0, 0, 0, 1],
+  [0, 0, 0, 0, 0, 1],
+  [0, 0, 0, 0, 0, 1]
+]
+```
+
+```elixir
+defmodule Poisson do
+  def step(f, 0) do
+    f
+  end
+
+  def step(f, n) when n > 0 do
+    size = {length(Enum.at(f, 0)) - 1, length(f) - 1}
+    step(run(f, size), n - 1)
+  end
+
+  def run(f, size) do
+    run(f, f, length(f) - 1, size)
+  end
+
+  def run(nf, of, y, size) when y > 0 do
+    new_row =
+      of
+      |> Enum.at(y)
+      |> update_row(y, of, size)
+
+    run(List.update_at(nf, y, fn _ -> new_row end), of, y - 1, size)
+  end
+
+  def run(nf, _of, 0, _size) do
+    nf
+  end
+
+  def value_at({x, y}, f) do
+    f
+    |> Enum.at(y)
+    |> Enum.at(x)
+  end
+
+  def calc_average_of_neighbours({x, y}, f, {sx, sy})
+      when x > 0 and x < sx and y > 0 and y < sy do
+    new_val =
+      value_at({x, y - 1}, f) + value_at({x, y + 1}, f) + value_at({x - 1, y}, f) +
+        value_at({x + 1, y}, f)
+
+    new_val / 4
+  end
+
+  def calc_average_of_neighbours({x, y}, f, _size) do
+    value_at({x, y}, f)
+  end
+
+  def update_row(row, y, f, size) do
+    row
+    |> Enum.with_index(fn element, index -> {index, element} end)
+    |> Enum.reduce([], fn {x, _val}, acc ->
+      acc ++ [calc_average_of_neighbours({x, y}, f, size)]
+    end)
+  end
+
+  # TODO - look into over-correction code - multiply the difference (average - old value) by a correction factor
+end
+```
+
+```elixir
+Poisson.step(f, 3)
+```
