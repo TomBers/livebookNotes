@@ -85,3 +85,41 @@ end
 ```elixir
 Poisson.step(f, 3)
 ```
+
+This is a basic implementation, and you can run n number of times.  We have not added any convergence metrics or optimisations.
+
+Lets see how we might implement using `Nx`
+
+Lets experiment with building a random tensor and drawing a heatmap
+
+```elixir
+inp =
+  1..6
+  |> Enum.map(fn _x ->
+    1..6 |> Enum.map(fn _y -> Enum.random([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]) end)
+  end)
+
+nxf = Nx.tensor(inp)
+```
+
+```elixir
+Nx.to_heatmap(nxf)
+```
+
+Lets try and replicate our average neighbours code
+
+```elixir
+nxf =
+  Nx.tensor([
+    [0, 0, 0, 0, 0, 1],
+    [0, 0, 0, 0, 0, 1],
+    [0, 0, 0, 0, 0, 1],
+    [0, 0, 0, 0, 0, 1],
+    [0, 0, 0, 0, 0, 1],
+    [0, 0, 0, 0, 0, 1]
+  ])
+```
+
+```elixir
+Nx.window_mean(nxf, {1, 1})
+```
