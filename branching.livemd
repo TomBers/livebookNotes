@@ -1,12 +1,12 @@
 # Branching in Livebook
 
-## Branch code
+## Const for branch 1
 
 ```elixir
 greeting = "Hello"
 ```
 
-## A different branch
+## Const for branch 2
 
 ```elixir
 greeting = "World"
