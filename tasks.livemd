@@ -40,9 +40,9 @@ The Task module is a simple way to run code co-currently.  There a number of way
 
 You can check out the [docs](https://hexdocs.pm/elixir/1.12/Task.html)
 
-We will cover 2 ways of using the Task module - start / start_link, and async / await
+We will cover 2 ways of using the Task module - async / await and start
 
-Because the difference in start and start_link involves supervision, I will start with async / await
+I will start with async / await
 
 (From the docs)
 
