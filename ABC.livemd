@@ -16,16 +16,17 @@ Typically in an imperative approach, each command is executed in order and we ca
 
 ```
 count = 0 
-for (i = 0; i <= 10; i++) {
+for (i = 0; i <= 4; i++) {
   count += i
 }
+# count = 10
 ```
 
-At the end of this loop count will have the value 100.  However if we try and do this in Elixir it will not work.
+At the end of this loop count will have the value 10.  However if we try and do this in Elixir it will not work.
 
 ```elixir
 count = 0
-for n <- 1..10, do: count + n
+for n <- 1..4, do: count + n
 ```
 
 We get a very different looking result. We get a `list` of values, and the key thing to observe is that the count is always 0, we can count on the value of count not changing.
@@ -38,22 +39,75 @@ This is very important to running code concurrently see [Immutability in Elixir]
 
 So what if I did actually want to do some sort of counting code (run a code some number of times and get a single result out)?
 
-```elixir
+One technique you can reach for, is a recursive function.  That is a function that calls itself.
 
+When writing a recusive function you often think of a termination condition (e.g when a parameter reaches 0) and keep calling the function with new parameters till the condition is met.
+
+Lets try with a simple count function we want to exit when a count down reaches zero and returned the value we have calculated.  We will reproduce the for loop example we saw above.
+
+```elixir
+defmodule SimpleCount do
+  # Exit when we have counted down to 0
+  def run(count, 0) do
+    count
+  end
+
+  def run(count, n) do
+    # Rerun the same function with updated parameters
+    run(count + n, n - 1)
+  end
+end
+
+SimpleCount.run(0, 4)
 ```
 
-## Map
+We are doing a number of interesting things in the above function. Hopefully it looks relatively clear what the code is doing and can be reasoned about.
+We are also doing `pattern matching` of the function signatures avoiding a messy `if` statement.
 
+## Thoughts on approach
 
+I tend to think of FP coding in Eliixr as exercise in transformation.  We begin with some collection of data and create a pipeline of modifications to return a result.
+
+[Todo]
+
+The following sections hope to flesh out this idea when working with collections of data.  By collection it could be a list all of the users in your system, or all the responses in an API call.
+
+Typically we will want to return another collection with the processing done on each element (Map / Filter) or accumulate something from the collection to a single value (Reduce).
+
+## Enum.Map
+
+[Enum.map](https://hexdocs.pm/elixir/1.12/Enum.html#map/2) Returns a list where each element is the result of invoking fun on each corresponding element of enumerable.
+
+It is important to note that each function is called on the element independently of the other functions, so you will not have access to other results.
 
 ```elixir
-
+1..4
+# x will be called first with 1, then 2 etc
+|> Enum.map(fn x -> x + 1 end)
+|> IO.inspect()
+|> Enum.map(fn x -> x + 2 end)
 ```
 
-## Reduce
+## Enum.Filter
 
+[Enum.filter](https://hexdocs.pm/elixir/1.12/Enum.html#filter/2) returns only those elements for which fun returns a truthy value.
 
+So we can write a way of filtering odd numbers
 
 ```elixir
+require Integer
 
+1..10
+|> Enum.filter(fn x -> Integer.is_even(x) end)
+```
+
+## Enum.Reduce
+
+[Enum.reduce](https://hexdocs.pm/elixir/1.12/Enum.html#reduce/2) typically takes a collection and gets a single value, it can `remember` the results from the previous computations.
+
+We are going to reimplement the recursive function we wrote above to so the same thing.  Reduce takes a function as an argument in this case `x, acc` the `x` is the current value of the collection of the collection we are working with (1, 2, 3, 4 etc) and `accumulator` is the return value of the previous calculation.
+
+```elixir
+1..4
+|> Enum.reduce(fn x, accumulator -> accumulator + x end)
 ```
