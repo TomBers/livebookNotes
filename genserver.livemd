@@ -1,16 +1,35 @@
-# Gen Server
+# GenServer
 
 ## What? Why?
 
-Lets start out with a simple example, we want a counter with an inc and dec method and a way of getting the current value.
+GenServer's are one of the first interesting departures from other programming approaches that people new to Elixir will encounter.
 
-This will combine both async and synchronous data access methods and provide a simple interface.
+From the [HexDocs](https://hexdocs.pm/elixir/1.12/GenServer.html) we get the description
+
+> it (GenServer) can be used to keep state, execute code asynchronously and so on
+
+This is a little vague and I hope to provide a reason why you would want to do this.
+
+Lets start out with a simple example:
+
+* A counter with an inc and dec method.
+* A way of getting the current value.
+* A simple interface to set and get these values.
+* A print function to log the state to the console.
+
+In an object orientated approach to this problem we would let an object manage it's own state, so we would have a `Counter` object with an internal value to track the current count and methods to access this value.
+As we are not working in an OOP paradigm we have something a bit different.
+
+The state is not tied to an object and it is not restricted to the objects internal structure, we can store any data structure in a GenServer and we can provides a mixture of both async and synchronous data access methods and provide a simple interface.
 
 ```elixir
 defmodule GenCounter do
   use GenServer
 
   # Public interfaces
+
+  # Calling GenServer cast / call will pass a message to our Counter which it will respond to 
+  # in the methods below.
   def inc(pid, n \\ 1) do
     1..n
     |> Enum.map(fn _x -> GenServer.cast(pid, :inc) end)
@@ -42,15 +61,17 @@ defmodule GenCounter do
 
   # ----------------------
 
-  # Handle Events - either expecting a result (call) or not (cast)
+  # Handle Events - We receive a massge and either expecting a result (call) or not (cast)
   def handle_cast(:inc, state) do
     {:noreply, state + 1}
   end
 
+  # Async function - ther state gets changed, but we do not wait for that to happen
   def handle_cast(:dec, state) do
     {:noreply, state - 1}
   end
 
+  # Sunc function - we want a result and need to wait for that to be calculated
   def handle_call(:val, _from, state) do
     {:reply, state, state}
   end
@@ -58,7 +79,8 @@ end
 ```
 
 ```elixir
-{:ok, counter_pid} = GenCounter.start_link(4)
+# the initial value for the count
+{:ok, counter_pid} = GenCounter.start_link(0)
 GenCounter.print(counter_pid)
 
 GenCounter.inc(counter_pid, 10)
@@ -73,14 +95,18 @@ GenCounter.print(counter_pid)
 ## GenServers as Objects?
 
 A lot of ink and sanity is spilt when discussing objects in a programming context.
-Object-orientation is considered by some the pinicle of programming abstraction.  But what is it?
+Object-orientation is considered by some the pinnacle of programming abstraction.  But what is it?
 
 [Wiki says](https://en.wikipedia.org/wiki/Object-oriented_programming)
 
 > Object-oriented programming (OOP) is a programming paradigm based on the concept of "objects", which can contain data and code: data in the form of fields (often known as attributes or properties), and code, in the form of procedures (often known as methods).
 > A feature of objects is that an object's own procedures can access and often modify the data fields of itself (objects have a notion of this or self). In OOP, computer programs are designed by making them out of objects that interact with one another.
 
-* Add commentry
+Ultimately the ultimate question is how to structure code so that we can think about it as it grows.  We do this be making sure we can reson about it in 'chunks', that changing a unrelated part of the code does not break anything else.
+
+If we keep in mind the goal of keeping a box around parts of code and making sure we don't have to think about the `how`, just the `what` then I think there is an argument that GenServers can be thought of as `Objects`
+
+Not only can we provide a way of modifying state we can protect that state and implement logic to control how it is updated.
 
 ```elixir
 defmodule User do
