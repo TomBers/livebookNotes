@@ -2,7 +2,9 @@
 
 ## Different ways of thinking in FP
 
-The goal of this document is to give a very opinionate view on a way of thinking about functional programming for those coming from a more imperative background be it popular web languages (JS, Python) or C like coding (inc Java).
+The goal of this document is to give a very opinionate view on a way of thinking about functional 
+programming for those coming from a more imperative background be it popular web languages 
+(`JS`, `Python`) or C like coding (inc `Java`).
 
 Hopefully it will provide a useful way of thinking about tackling problems in a FP approach and how some issues become easier (definitely different)
 
@@ -26,12 +28,18 @@ At the end of this loop count will have the value 10.  However if we try and do 
 
 ```elixir
 count = 0
-for n <- 1..4, do: count + n
+
+1..4
+|> Enum.each(fn x -> count + x end)
+|> IO.inspect()
+
+count
 ```
 
-We get a very different looking result. We get a `list` of values, and the key thing to observe is that the count is always 0, we can count on the value of count not changing.
+The `each` function just executes a function for each element in a collection (more on collections later in the doc)
+We can see that the count variable is not being changed. This is because immutability rules:
 
-> They simply don’t allow values in a certain memory location to change.
+> simply don’t allow values in a certain memory location to change.
 
 This is very important to running code concurrently see [Immutability in Elixir](https://darioghilardi.com/immutability-in-elixir)
 
