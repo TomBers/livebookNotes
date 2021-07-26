@@ -43,6 +43,22 @@ We can see that the count variable is not being changed. This is because immutab
 
 This is very important to running code concurrently see [Immutability in Elixir](https://darioghilardi.com/immutability-in-elixir)
 
+Lets see another example
+
+```elixir
+# Another example
+a = 1
+# This line is declaring an anonymous function and assigning it to print_var_fn
+print_var_fn = fn -> IO.puts(a) end
+
+a = 2
+print_var_fn.()
+```
+
+> The concept of data immutability is that the data once it is created in a memory location cannot be altered. Immutability must be preserved
+
+The above example was taken from [Elixir — Understand Data Immutability](https://medium.com/blackode/elixir-understand-data-immutability-429408fec048)
+
 ## Recursion
 
 So what if I did actually want to do some sort of counting code (run a code some number of times and get a single result out)?
