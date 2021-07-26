@@ -12,6 +12,8 @@ Mix.install([
 ])
 
 alias VegaLite, as: Vl
+
+require Math
 ```
 
 Lets generate a parabola
@@ -21,7 +23,7 @@ $$ y = x^2$$
 ```elixir
 data =
   -10..10
-  |> Enum.map(fn x -> %{"x" => x, "y" => x * x} end)
+  |> Enum.map(fn x -> %{"x" => x, "y" => Math.pow(x, 2)} end)
 ```
 
 ```elixir
@@ -37,8 +39,6 @@ Lets try an exponential
 $$e^x$$
 
 ```elixir
-require Math
-
 data =
   0..10
   |> Enum.map(fn x -> %{"x" => x, "y" => Math.exp(x)} end)
@@ -50,4 +50,62 @@ Vl.new(width: 400, height: 300)
 |> Vl.mark(:line)
 |> Vl.encode_field(:x, "x", type: :quantitative)
 |> Vl.encode_field(:y, "y", type: :quantitative)
+```
+
+Lets try an input - enter a power of x and see how it graphs
+
+<!-- livebook:{"livebook_object":"cell_input","name":"pow","props":{"max":10,"min":1,"step":1},"reactive":true,"type":"range","value":"1"} -->
+
+```elixir
+pow = IO.gets("pow") |> String.trim() |> String.to_integer()
+
+IO.inspect("Power: #{pow}")
+
+data =
+  -10..10
+  |> Enum.map(fn x -> %{"x" => x, "y" => Math.pow(x, pow)} end)
+
+Vl.new(width: 400, height: 300)
+|> Vl.data_from_values(data)
+|> Vl.mark(:point)
+|> Vl.encode_field(:x, "x", type: :quantitative)
+|> Vl.encode_field(:y, "y", type: :quantitative)
+```
+
+## Plotting multiple lines - towards a Epicycloid
+
+> ​If we roll a circle around the circumference of another circle, the shape traced by a point on the moving circle is an epicycloid.
+
+See [Draw Curves with Straight Lines](https://www.mwmresearchgroup.org/draw-curves-with-straight-lines.html)
+
+Lets try drawing multiple lines on the same graph
+
+```elixir
+limit = 10
+
+dataA =
+  0..limit
+  |> Enum.flat_map(fn x ->
+    [
+      %{"x" => 0, "y" => limit - x, "n" => "lower_#{x}"},
+      %{"x" => x, "y" => 0, "n" => "lower_#{x}"}
+    ]
+  end)
+
+dataB =
+  0..limit
+  |> Enum.flat_map(fn x ->
+    [
+      %{"x" => limit, "y" => limit - x, "n" => "upper_#{x}"},
+      %{"x" => x, "y" => limit, "n" => "upper_#{x}"}
+    ]
+  end)
+
+Vl.new(width: 400, height: 300)
+|> Vl.data(sequence: [start: 0, stop: 10, step: 1, as: "x"])
+|> Vl.data_from_values(dataA ++ dataB)
+|> Vl.mark(:line)
+|> Vl.encode_field(:x, "x", type: :quantitative)
+|> Vl.encode_field(:y, "y", type: :quantitative)
+|> Vl.encode_field(:color, "n", type: :nominal)
 ```
