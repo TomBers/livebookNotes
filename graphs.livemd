@@ -1,0 +1,53 @@
+# Fun with Graphs
+
+## Lets checkout the graphing functionality of LiveBooks
+
+Lets draw some graphs, first setup the graphing tools.
+
+```elixir
+Mix.install([
+  {:vega_lite, "~> 0.1.0"},
+  {:kino, "~> 0.2.0"},
+  {:math, "~> 0.6.0"}
+])
+
+alias VegaLite, as: Vl
+```
+
+Lets generate a parabola
+
+$$ y = x^2$$
+
+```elixir
+data =
+  -10..10
+  |> Enum.map(fn x -> %{"x" => x, "y" => x * x} end)
+```
+
+```elixir
+Vl.new(width: 400, height: 300)
+|> Vl.data_from_values(data)
+|> Vl.mark(:point)
+|> Vl.encode_field(:x, "x", type: :quantitative)
+|> Vl.encode_field(:y, "y", type: :quantitative)
+```
+
+Lets try an exponential
+
+$$e^x$$
+
+```elixir
+require Math
+
+data =
+  0..10
+  |> Enum.map(fn x -> %{"x" => x, "y" => Math.exp(x)} end)
+```
+
+```elixir
+Vl.new(width: 400, height: 300)
+|> Vl.data_from_values(data)
+|> Vl.mark(:line)
+|> Vl.encode_field(:x, "x", type: :quantitative)
+|> Vl.encode_field(:y, "y", type: :quantitative)
+```
