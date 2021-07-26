@@ -109,3 +109,17 @@ Vl.new(width: 400, height: 300)
 |> Vl.encode_field(:y, "y", type: :quantitative)
 |> Vl.encode_field(:color, "n", type: :nominal)
 ```
+
+What we want to do now, is to be able to draw a circle with numbers, so that we can draw a line from number 22 to 64 and this will draw a cord across the circle.
+
+As an example, think of a clock, drawing from 3 to 9 would be a horizontal line, where as 11 to 5 would be at an angle.
+
+The challenge to is draw a circle of `n` divisions and map that location to a point on the circle.
+
+Lets try drawing a clock face.
+
+```elixir
+divisions = 12
+
+# We will work in Radians as it is easier
+```
