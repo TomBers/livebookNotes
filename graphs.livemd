@@ -118,43 +118,49 @@ The challenge to is draw a circle of `n` divisions and map that location to a po
 
 Lets try drawing a clock face.
 
+We will need some math helpers.  We need to calculate the x and y positions for each number on the clock face using the following formula
+
+$$x = centre_x + r *cos(a)$$
+$$y = centre_y + r* sin(a)$$
+
+The a is in radians (so we will need to convert between degrees and radians)
+
 ```elixir
 defmodule MathHelpers do
-  # Split the circle into x divisions - so draw n points around the circumference 
-  @number_of_points_to_draw 48
   @radius 200
-
-  def number_of_points_to_draw do
-    @number_of_points_to_draw
-  end
 
   def to_radians(0) do
     0
   end
 
-  def to_radians(x) do
-    point_to_angle(x) * (Math.pi() / 180)
+  def to_radians(x, number_of_points_to_draw) do
+    point_to_angle(x, number_of_points_to_draw) * (Math.pi() / 180)
   end
 
-  def point_to_angle(0) do
+  def point_to_angle(0, _number_of_points_to_draw) do
     0
   end
 
-  def point_to_angle(x) do
-    360 / @number_of_points_to_draw * x
+  def point_to_angle(x, number_of_points_to_draw) do
+    360 / number_of_points_to_draw * x
   end
 
   # See https://stackoverflow.com/questions/839899/how-do-i-calculate-a-point-on-a-circle-s-circumference
-  def circle_x(cx, x) do
-    cx + @radius * Math.sin(to_radians(x))
+  def circle_x(cx, x, number_of_points_to_draw) do
+    cx + @radius * Math.sin(to_radians(x, number_of_points_to_draw))
   end
 
-  def circle_y(cy, x) do
-    cy + @radius * Math.cos(to_radians(x))
+  def circle_y(cy, x, number_of_points_to_draw) do
+    cy + @radius * Math.cos(to_radians(x, number_of_points_to_draw))
   end
 
-  def coords_for_point(n, {cx, cy}, iter) do
-    %{"x" => circle_x(cx, n), "y" => circle_y(cy, n), "n" => n, "iter" => iter}
+  def coords_for_point(n, number_of_points_to_draw, {cx, cy}, iter) do
+    %{
+      "x" => circle_x(cx, n, number_of_points_to_draw),
+      "y" => circle_y(cy, n, number_of_points_to_draw),
+      "n" => n,
+      "iter" => iter
+    }
   end
 end
 ```
@@ -164,19 +170,130 @@ w = 400
 h = 400
 # Center of the circle
 center = {w / 2, h / 2}
-n = MathHelpers.number_of_points_to_draw()
+# Split the circle into x divisions - so draw n points around the circumference
+number_of_points_to_draw = 12
+
+circle =
+  0..number_of_points_to_draw
+  |> Enum.map(fn n ->
+    MathHelpers.coords_for_point(n, number_of_points_to_draw, center, "circle")
+  end)
+
+Vl.new(width: w, height: h)
+|> Vl.data_from_values(circle)
+|> Vl.mark(:point)
+|> Vl.encode_field(:x, "x", type: :quantitative)
+|> Vl.encode_field(:y, "y", type: :quantitative)
+```
+
+Lets try drawing lines between random points on the circle
+
+```elixir
+w = 400
+h = 400
+# Center of the circle
+center = {w / 2, h / 2}
+# Split the circle into x divisions - so draw n points around the circumference
+number_of_points_to_draw = 12
 number_of_lines = 150
 
 circle =
-  0..n
-  |> Enum.map(fn n -> MathHelpers.coords_for_point(n, center, "circle") end)
+  0..number_of_points_to_draw
+  |> Enum.map(fn n ->
+    MathHelpers.coords_for_point(n, number_of_points_to_draw, center, "circle")
+  end)
 
 lines =
   1..number_of_lines
   |> Enum.flat_map(fn x ->
     [
-      MathHelpers.coords_for_point(Enum.random(0..n), center, x),
-      MathHelpers.coords_for_point(Enum.random(0..n), center, x)
+      MathHelpers.coords_for_point(
+        Enum.random(0..number_of_points_to_draw),
+        number_of_points_to_draw,
+        center,
+        x
+      ),
+      MathHelpers.coords_for_point(
+        Enum.random(0..number_of_points_to_draw),
+        number_of_points_to_draw,
+        center,
+        x
+      )
+    ]
+  end)
+
+# Draw it
+Vl.new(width: w, height: h)
+|> Vl.layers([
+  Vl.new()
+  |> Vl.data_from_values(circle)
+  |> Vl.mark(:point)
+  |> Vl.encode_field(:x, "x", type: :quantitative)
+  |> Vl.encode_field(:y, "y", type: :quantitative),
+  Vl.new()
+  |> Vl.data_from_values(lines)
+  |> Vl.mark(:line)
+  |> Vl.encode_field(:x, "x", type: :quantitative)
+  |> Vl.encode_field(:y, "y", type: :quantitative)
+  |> Vl.encode_field(:color, "iter", type: :nominal)
+])
+```
+
+The last part of the puzzle is to calculate where the lines should go from / to.
+
+> For a cardioid, join each point on the circle to the point 2 x its number value with a straight line (join 1 to 2, 2 to 4, 3 to 6 and so on).\
+> There are 100 points on the circle.  When you get to point 51, which maps to 102, keep going round the circle, subtracting 100 from the number you need, to find the correct point.
+
+[Draw Curves with Straight Lines](https://www.mwmresearchgroup.org/draw-curves-with-straight-lines.html)
+
+```elixir
+defmodule Epicycloid do
+  def cardioid(0, _limit) do
+    0
+  end
+
+  def cardioid(n, limit) when 2 * n <= limit do
+    2 * n
+  end
+
+  def cardioid(n, limit) do
+    cardioid(n - limit, limit)
+  end
+end
+```
+
+```elixir
+limit = 100
+Epicycloid.cardioid(2, limit) |> IO.inspect()
+Epicycloid.cardioid(3, limit) |> IO.inspect()
+Epicycloid.cardioid(102, limit) |> IO.inspect()
+```
+
+```elixir
+w = 400
+h = 400
+# Center of the circle
+center = {w / 2, h / 2}
+number_of_points_to_draw = 100
+number_of_lines = 150
+
+circle =
+  0..number_of_points_to_draw
+  |> Enum.map(fn n ->
+    MathHelpers.coords_for_point(n, number_of_points_to_draw, center, "circle")
+  end)
+
+lines =
+  1..number_of_lines
+  |> Enum.flat_map(fn x ->
+    [
+      MathHelpers.coords_for_point(x, number_of_points_to_draw, center, x),
+      MathHelpers.coords_for_point(
+        Epicycloid.cardioid(x, number_of_points_to_draw),
+        number_of_points_to_draw,
+        center,
+        x
+      )
     ]
   end)
 
