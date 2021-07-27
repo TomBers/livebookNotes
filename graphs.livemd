@@ -121,7 +121,7 @@ Lets try drawing a clock face.
 ```elixir
 defmodule MathHelpers do
   # Split the circle into x divisions - so draw n points around the circumference 
-  @number_of_points_to_draw 24
+  @number_of_points_to_draw 48
   @radius 200
 
   def number_of_points_to_draw do
@@ -152,6 +152,10 @@ defmodule MathHelpers do
   def circle_y(cy, x) do
     cy + @radius * Math.cos(to_radians(x))
   end
+
+  def coords_for_point(n, {cx, cy}, iter) do
+    %{"x" => circle_x(cx, n), "y" => circle_y(cy, n), "n" => n, "iter" => iter}
+  end
 end
 ```
 
@@ -159,18 +163,36 @@ end
 w = 400
 h = 400
 # Center of the circle
-cx = w / 2
-cy = h / 2
+center = {w / 2, h / 2}
+n = MathHelpers.number_of_points_to_draw()
+number_of_lines = 150
 
-data =
-  0..MathHelpers.number_of_points_to_draw()
-  |> Enum.map(fn x ->
-    %{"x" => MathHelpers.circle_x(cx, x), "y" => MathHelpers.circle_y(cy, x)}
+circle =
+  0..n
+  |> Enum.map(fn n -> MathHelpers.coords_for_point(n, center, "circle") end)
+
+lines =
+  1..number_of_lines
+  |> Enum.flat_map(fn x ->
+    [
+      MathHelpers.coords_for_point(Enum.random(0..n), center, x),
+      MathHelpers.coords_for_point(Enum.random(0..n), center, x)
+    ]
   end)
 
+# Draw it
 Vl.new(width: w, height: h)
-|> Vl.data_from_values(data)
-|> Vl.mark(:point)
-|> Vl.encode_field(:x, "x", type: :quantitative)
-|> Vl.encode_field(:y, "y", type: :quantitative)
+|> Vl.layers([
+  Vl.new()
+  |> Vl.data_from_values(circle)
+  |> Vl.mark(:point)
+  |> Vl.encode_field(:x, "x", type: :quantitative)
+  |> Vl.encode_field(:y, "y", type: :quantitative),
+  Vl.new()
+  |> Vl.data_from_values(lines)
+  |> Vl.mark(:line)
+  |> Vl.encode_field(:x, "x", type: :quantitative)
+  |> Vl.encode_field(:y, "y", type: :quantitative)
+  |> Vl.encode_field(:color, "iter", type: :nominal)
+])
 ```
