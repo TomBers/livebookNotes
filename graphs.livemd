@@ -12,8 +12,6 @@ Mix.install([
 ])
 
 alias VegaLite, as: Vl
-
-require Math
 ```
 
 Lets generate a parabola
@@ -21,6 +19,8 @@ Lets generate a parabola
 $$ y = x^2$$
 
 ```elixir
+require Math
+
 data =
   -10..10
   |> Enum.map(fn x -> %{"x" => x, "y" => Math.pow(x, 2)} end)
@@ -119,7 +119,58 @@ The challenge to is draw a circle of `n` divisions and map that location to a po
 Lets try drawing a clock face.
 
 ```elixir
-divisions = 12
+defmodule MathHelpers do
+  # Split the circle into x divisions - so draw n points around the circumference 
+  @number_of_points_to_draw 24
+  @radius 200
 
-# We will work in Radians as it is easier
+  def number_of_points_to_draw do
+    @number_of_points_to_draw
+  end
+
+  def to_radians(0) do
+    0
+  end
+
+  def to_radians(x) do
+    point_to_angle(x) * (Math.pi() / 180)
+  end
+
+  def point_to_angle(0) do
+    0
+  end
+
+  def point_to_angle(x) do
+    360 / @number_of_points_to_draw * x
+  end
+
+  # See https://stackoverflow.com/questions/839899/how-do-i-calculate-a-point-on-a-circle-s-circumference
+  def circle_x(cx, x) do
+    cx + @radius * Math.sin(to_radians(x))
+  end
+
+  def circle_y(cy, x) do
+    cy + @radius * Math.cos(to_radians(x))
+  end
+end
+```
+
+```elixir
+w = 400
+h = 400
+# Center of the circle
+cx = w / 2
+cy = h / 2
+
+data =
+  0..MathHelpers.number_of_points_to_draw()
+  |> Enum.map(fn x ->
+    %{"x" => MathHelpers.circle_x(cx, x), "y" => MathHelpers.circle_y(cy, x)}
+  end)
+
+Vl.new(width: w, height: h)
+|> Vl.data_from_values(data)
+|> Vl.mark(:point)
+|> Vl.encode_field(:x, "x", type: :quantitative)
+|> Vl.encode_field(:y, "y", type: :quantitative)
 ```
