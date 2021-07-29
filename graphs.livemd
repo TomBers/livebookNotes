@@ -1,0 +1,315 @@
+# Fun with Graphs
+
+## Lets checkout the graphing functionality of LiveBooks
+
+Lets draw some graphs, first setup the graphing tools.
+
+```elixir
+Mix.install([
+  {:vega_lite, "~> 0.1.0"},
+  {:kino, "~> 0.2.0"},
+  {:math, "~> 0.6.0"}
+])
+
+alias VegaLite, as: Vl
+```
+
+Lets generate a parabola
+
+$$ y = x^2$$
+
+```elixir
+require Math
+
+data =
+  -10..10
+  |> Enum.map(fn x -> %{"x" => x, "y" => Math.pow(x, 2)} end)
+```
+
+```elixir
+Vl.new(width: 400, height: 300)
+|> Vl.data_from_values(data)
+|> Vl.mark(:point)
+|> Vl.encode_field(:x, "x", type: :quantitative)
+|> Vl.encode_field(:y, "y", type: :quantitative)
+```
+
+Lets try an exponential
+
+$$e^x$$
+
+```elixir
+data =
+  0..10
+  |> Enum.map(fn x -> %{"x" => x, "y" => Math.exp(x)} end)
+```
+
+```elixir
+Vl.new(width: 400, height: 300)
+|> Vl.data_from_values(data)
+|> Vl.mark(:line)
+|> Vl.encode_field(:x, "x", type: :quantitative)
+|> Vl.encode_field(:y, "y", type: :quantitative)
+```
+
+Lets try an input - enter a power of x and see how it graphs
+
+<!-- livebook:{"livebook_object":"cell_input","name":"pow","props":{"max":10,"min":1,"step":1},"reactive":true,"type":"range","value":"1"} -->
+
+```elixir
+pow = IO.gets("pow") |> String.trim() |> String.to_integer()
+
+IO.inspect("Power: #{pow}")
+
+data =
+  -10..10
+  |> Enum.map(fn x -> %{"x" => x, "y" => Math.pow(x, pow)} end)
+
+Vl.new(width: 400, height: 300)
+|> Vl.data_from_values(data)
+|> Vl.mark(:point)
+|> Vl.encode_field(:x, "x", type: :quantitative)
+|> Vl.encode_field(:y, "y", type: :quantitative)
+```
+
+## Plotting multiple lines - towards a Epicycloid
+
+> ​If we roll a circle around the circumference of another circle, the shape traced by a point on the moving circle is an epicycloid.
+
+See [Draw Curves with Straight Lines](https://www.mwmresearchgroup.org/draw-curves-with-straight-lines.html)
+
+Lets try drawing multiple lines on the same graph
+
+```elixir
+limit = 10
+
+dataA =
+  0..limit
+  |> Enum.flat_map(fn x ->
+    [
+      %{"x" => 0, "y" => limit - x, "n" => "lower_#{x}"},
+      %{"x" => x, "y" => 0, "n" => "lower_#{x}"}
+    ]
+  end)
+
+dataB =
+  0..limit
+  |> Enum.flat_map(fn x ->
+    [
+      %{"x" => limit, "y" => limit - x, "n" => "upper_#{x}"},
+      %{"x" => x, "y" => limit, "n" => "upper_#{x}"}
+    ]
+  end)
+
+Vl.new(width: 400, height: 300)
+|> Vl.data(sequence: [start: 0, stop: 10, step: 1, as: "x"])
+|> Vl.data_from_values(dataA ++ dataB)
+|> Vl.mark(:line)
+|> Vl.encode_field(:x, "x", type: :quantitative)
+|> Vl.encode_field(:y, "y", type: :quantitative)
+|> Vl.encode_field(:color, "n", type: :nominal)
+```
+
+What we want to do now, is to be able to draw a circle with numbers, so that we can draw a line from number 22 to 64 and this will draw a cord across the circle.
+
+As an example, think of a clock, drawing from 3 to 9 would be a horizontal line, where as 11 to 5 would be at an angle.
+
+The challenge to is draw a circle of `n` divisions and map that location to a point on the circle.
+
+Lets try drawing a clock face.
+
+We will need some math helpers.  We need to calculate the x and y positions for each number on the clock face using the following formula
+
+$$x = centre_x + r *cos(a)$$
+$$y = centre_y + r* sin(a)$$
+
+The a is in radians (so we will need to convert between degrees and radians)
+
+```elixir
+defmodule MathHelpers do
+  @radius 200
+
+  def to_radians(0) do
+    0
+  end
+
+  def to_radians(x, number_of_points_to_draw) do
+    point_to_angle(x, number_of_points_to_draw) * (Math.pi() / 180)
+  end
+
+  def point_to_angle(0, _number_of_points_to_draw) do
+    0
+  end
+
+  def point_to_angle(x, number_of_points_to_draw) do
+    360 / number_of_points_to_draw * x
+  end
+
+  # See https://stackoverflow.com/questions/839899/how-do-i-calculate-a-point-on-a-circle-s-circumference
+  def circle_x(cx, x, number_of_points_to_draw) do
+    cx + @radius * Math.sin(to_radians(x, number_of_points_to_draw))
+  end
+
+  def circle_y(cy, x, number_of_points_to_draw) do
+    cy + @radius * Math.cos(to_radians(x, number_of_points_to_draw))
+  end
+
+  def coords_for_point(n, number_of_points_to_draw, {cx, cy}, iter) do
+    %{
+      "x" => circle_x(cx, n, number_of_points_to_draw),
+      "y" => circle_y(cy, n, number_of_points_to_draw),
+      "n" => n,
+      "iter" => iter
+    }
+  end
+end
+```
+
+```elixir
+w = 400
+h = 400
+# Center of the circle
+center = {w / 2, h / 2}
+# Split the circle into x divisions - so draw n points around the circumference
+number_of_points_to_draw = 12
+
+circle =
+  0..number_of_points_to_draw
+  |> Enum.map(fn n ->
+    MathHelpers.coords_for_point(n, number_of_points_to_draw, center, "circle")
+  end)
+
+Vl.new(width: w, height: h)
+|> Vl.data_from_values(circle)
+|> Vl.mark(:point)
+|> Vl.encode_field(:x, "x", type: :quantitative)
+|> Vl.encode_field(:y, "y", type: :quantitative)
+```
+
+Lets try drawing lines between random points on the circle
+
+```elixir
+w = 400
+h = 400
+# Center of the circle
+center = {w / 2, h / 2}
+# Split the circle into x divisions - so draw n points around the circumference
+number_of_points_to_draw = 12
+number_of_lines = 150
+
+circle =
+  0..number_of_points_to_draw
+  |> Enum.map(fn n ->
+    MathHelpers.coords_for_point(n, number_of_points_to_draw, center, "circle")
+  end)
+
+lines =
+  1..number_of_lines
+  |> Enum.flat_map(fn x ->
+    [
+      MathHelpers.coords_for_point(
+        Enum.random(0..number_of_points_to_draw),
+        number_of_points_to_draw,
+        center,
+        x
+      ),
+      MathHelpers.coords_for_point(
+        Enum.random(0..number_of_points_to_draw),
+        number_of_points_to_draw,
+        center,
+        x
+      )
+    ]
+  end)
+
+# Draw it
+Vl.new(width: w, height: h)
+|> Vl.layers([
+  Vl.new()
+  |> Vl.data_from_values(circle)
+  |> Vl.mark(:point)
+  |> Vl.encode_field(:x, "x", type: :quantitative)
+  |> Vl.encode_field(:y, "y", type: :quantitative),
+  Vl.new()
+  |> Vl.data_from_values(lines)
+  |> Vl.mark(:line)
+  |> Vl.encode_field(:x, "x", type: :quantitative)
+  |> Vl.encode_field(:y, "y", type: :quantitative)
+  |> Vl.encode_field(:color, "iter", type: :nominal)
+])
+```
+
+The last part of the puzzle is to calculate where the lines should go from / to.
+
+> For a cardioid, join each point on the circle to the point 2 x its number value with a straight line (join 1 to 2, 2 to 4, 3 to 6 and so on).\
+> There are 100 points on the circle.  When you get to point 51, which maps to 102, keep going round the circle, subtracting 100 from the number you need, to find the correct point.
+
+[Draw Curves with Straight Lines](https://www.mwmresearchgroup.org/draw-curves-with-straight-lines.html)
+
+```elixir
+defmodule Epicycloid do
+  def cardioid(0, _limit) do
+    0
+  end
+
+  def cardioid(n, limit) when 2 * n <= limit do
+    2 * n
+  end
+
+  def cardioid(n, limit) do
+    cardioid(n - limit, limit)
+  end
+end
+```
+
+```elixir
+limit = 100
+Epicycloid.cardioid(2, limit) |> IO.inspect()
+Epicycloid.cardioid(3, limit) |> IO.inspect()
+Epicycloid.cardioid(102, limit) |> IO.inspect()
+```
+
+```elixir
+w = 400
+h = 400
+# Center of the circle
+center = {w / 2, h / 2}
+number_of_points_to_draw = 100
+number_of_lines = 150
+
+circle =
+  0..number_of_points_to_draw
+  |> Enum.map(fn n ->
+    MathHelpers.coords_for_point(n, number_of_points_to_draw, center, "circle")
+  end)
+
+lines =
+  1..number_of_lines
+  |> Enum.flat_map(fn x ->
+    [
+      MathHelpers.coords_for_point(x, number_of_points_to_draw, center, x),
+      MathHelpers.coords_for_point(
+        Epicycloid.cardioid(x, number_of_points_to_draw),
+        number_of_points_to_draw,
+        center,
+        x
+      )
+    ]
+  end)
+
+# Draw it
+Vl.new(width: w, height: h)
+|> Vl.layers([
+  Vl.new()
+  |> Vl.data_from_values(circle)
+  |> Vl.mark(:point)
+  |> Vl.encode_field(:x, "x", type: :quantitative)
+  |> Vl.encode_field(:y, "y", type: :quantitative),
+  Vl.new()
+  |> Vl.data_from_values(lines)
+  |> Vl.mark(:line)
+  |> Vl.encode_field(:x, "x", type: :quantitative)
+  |> Vl.encode_field(:y, "y", type: :quantitative)
+  |> Vl.encode_field(:color, "iter", type: :nominal)
+])
+```
