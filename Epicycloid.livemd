@@ -1,0 +1,150 @@
+# Epicycloid - draw Curves with Straight Lines
+
+## Context
+
+[What is an Epicycloid?](https://www.mwmresearchgroup.org/draw-curves-with-straight-lines.html)
+
+## Setup (install graph libs and write some math helpers)
+
+```elixir
+Mix.install([
+  {:vega_lite, "~> 0.1.0"},
+  {:kino, "~> 0.2.0"},
+  {:math, "~> 0.6.0"}
+])
+
+alias VegaLite, as: Vl
+```
+
+Above are the graph tools and the Elixir Math lib for various trig functions (Sin and Cos)
+
+To draw our Epicycloid we need to draw a circle of n divisions and map that location to a point on the circle.
+
+Using a clock as an example we want to be able to draw a line from 3 o'clock to 9 o'clock and it be a horizontal line.
+
+We need to calculate the x and y positions for each number on the clock face using the following formula
+
+$$x = centre_x + r *cos(a)$$
+
+$$y = centre_y + r* sin(a)$$
+
+The a is in radians (so we will need to convert between degrees and radians)
+
+```elixir
+defmodule MathHelpers do
+  require Math
+
+  @radius 200
+
+  def to_radians(0) do
+    0
+  end
+
+  def to_radians(x, number_of_points_to_draw) do
+    point_to_angle(x, number_of_points_to_draw) * (Math.pi() / 180)
+  end
+
+  def point_to_angle(0, _number_of_points_to_draw) do
+    0
+  end
+
+  def point_to_angle(x, number_of_points_to_draw) do
+    360 / number_of_points_to_draw * x
+  end
+
+  # See https://stackoverflow.com/questions/839899/how-do-i-calculate-a-point-on-a-circle-s-circumference
+  def circle_x(cx, x, number_of_points_to_draw) do
+    cx + @radius * Math.sin(to_radians(x, number_of_points_to_draw))
+  end
+
+  def circle_y(cy, x, number_of_points_to_draw) do
+    cy + @radius * Math.cos(to_radians(x, number_of_points_to_draw))
+  end
+
+  # We return both the x and y coords + an identifier so we can draw a different colour per line
+  def coords_for_point(n, number_of_points_to_draw, {cx, cy}, iter) do
+    %{
+      "x" => circle_x(cx, n, number_of_points_to_draw),
+      "y" => circle_y(cy, n, number_of_points_to_draw),
+      "n" => n,
+      "iter" => iter
+    }
+  end
+end
+```
+
+## Draw an Epicycloid
+
+We imagine a circle split into 100 points, an epicycloid will join points together using a straight line.
+The lines are drawn between the current point - say 2 to n * 2  for each point.  As it is a circle we loop the numbers around, so 102 -> 2 etc
+
+We can alter the gaps between the numbers to generate different images
+
+[Draw Curves with Straight Lines](https://www.mwmresearchgroup.org/draw-curves-with-straight-lines.html)
+
+```elixir
+defmodule Epicycloid do
+  @limit 100
+
+  def calc(0, _n) do
+    0
+  end
+
+  def calc(p, n) when p * n <= @limit do
+    p * n
+  end
+
+  def calc(p, n) do
+    calc(p - @limit, n)
+  end
+end
+```
+
+<!-- livebook:{"livebook_object":"cell_input","name":"n","reactive":true,"type":"number","value":"4"} -->
+
+```elixir
+w = 400
+h = 400
+# Center of the circle
+center = {w / 2, h / 2}
+number_of_points_to_draw = 100
+number_of_lines = 150
+
+n = IO.gets("n") |> String.trim() |> String.to_integer()
+
+circle =
+  0..number_of_points_to_draw
+  |> Enum.map(fn n ->
+    MathHelpers.coords_for_point(n, number_of_points_to_draw, center, "circle")
+  end)
+
+lines =
+  1..number_of_lines
+  |> Enum.flat_map(fn x ->
+    [
+      MathHelpers.coords_for_point(x, number_of_points_to_draw, center, x),
+      MathHelpers.coords_for_point(
+        Epicycloid.calc(x, n),
+        number_of_points_to_draw,
+        center,
+        x
+      )
+    ]
+  end)
+
+# Draw it
+Vl.new(width: w, height: h)
+|> Vl.layers([
+  Vl.new()
+  |> Vl.data_from_values(circle)
+  |> Vl.mark(:point)
+  |> Vl.encode_field(:x, "x", type: :quantitative)
+  |> Vl.encode_field(:y, "y", type: :quantitative),
+  Vl.new()
+  |> Vl.data_from_values(lines)
+  |> Vl.mark(:line)
+  |> Vl.encode_field(:x, "x", type: :quantitative)
+  |> Vl.encode_field(:y, "y", type: :quantitative)
+  |> Vl.encode_field(:color, "iter", type: :nominal)
+])
+```
