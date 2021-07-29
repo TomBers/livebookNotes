@@ -100,7 +100,7 @@ defmodule Epicycloid do
 end
 ```
 
-<!-- livebook:{"livebook_object":"cell_input","name":"n","reactive":true,"type":"number","value":"4"} -->
+<!-- livebook:{"livebook_object":"cell_input","name":"n","reactive":true,"type":"number","value":"3"} -->
 
 ```elixir
 w = 400
@@ -108,7 +108,7 @@ h = 400
 # Center of the circle
 center = {w / 2, h / 2}
 number_of_points_to_draw = 100
-number_of_lines = 150
+number_of_lines = 100
 
 n = IO.gets("n") |> String.trim() |> String.to_integer()
 
