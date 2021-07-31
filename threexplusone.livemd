@@ -10,7 +10,7 @@ defmodule ThreeXplusone do
     loop(x, [])
   end
 
-  def loop(x, res) when x == 1 or x == 0 do
+  def loop(x, res) when x <= 1 do
     res ++ [x]
   end
 
