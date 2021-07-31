@@ -1,0 +1,79 @@
+# The Simplest Math Problem No One Can Solve
+
+## Context
+
+See [The Simplest Math Problem No One Can Solve](https://www.youtube.com/watch?v=094y1Z2wpJg&t=854s)
+
+```elixir
+defmodule ThreeXplusone do
+  def run(x) do
+    loop(x, [])
+  end
+
+  def loop(x, res) when x == 1 do
+    res ++ [x]
+  end
+
+  def loop(x, res) when rem(x, 2) == 0 do
+    new_x = div(x, 2)
+    loop(new_x, res ++ [x])
+  end
+
+  def loop(x, res) do
+    new_x = 3 * x + 1
+    loop(new_x, res ++ [x])
+  end
+end
+```
+
+```elixir
+ThreeXplusone.run(7)
+```
+
+## Graph the results
+
+```elixir
+Mix.install([
+  {:vega_lite, "~> 0.1.0"},
+  {:kino, "~> 0.2.0"}
+])
+
+alias VegaLite, as: Vl
+```
+
+```elixir
+data =
+  ThreeXplusone.run(7)
+  |> Enum.with_index()
+  |> Enum.map(fn {val, indx} -> %{"x" => indx, "y" => val} end)
+
+Vl.new(width: 400, height: 300)
+|> Vl.data_from_values(data)
+|> Vl.mark(:line)
+|> Vl.encode_field(:x, "x", type: :quantitative)
+|> Vl.encode_field(:y, "y", type: :quantitative)
+```
+
+<!-- livebook:{"livebook_object":"cell_input","name":"start_n","reactive":true,"type":"number","value":"10"} -->
+
+<!-- livebook:{"livebook_object":"cell_input","name":"end_n","reactive":true,"type":"number","value":"25"} -->
+
+```elixir
+start_n = IO.gets("start_n") |> String.trim() |> String.to_integer()
+end_n = IO.gets("end_n") |> String.trim() |> String.to_integer()
+
+data =
+  start_n..end_n
+  |> Enum.flat_map(fn n ->
+    ThreeXplusone.run(n)
+    |> Enum.with_index()
+    |> Enum.map(fn {val, indx} -> %{"x" => indx, "y" => val, "n" => n} end)
+  end)
+
+Vl.new(width: 400, height: 300)
+|> Vl.data_from_values(data)
+|> Vl.mark(:line)
+|> Vl.encode_field(:x, "x", type: :quantitative)
+|> Vl.encode_field(:y, "y", type: :quantitative)
+|> Vl.encode_field(:color, "n", type: :nominal)
+```
