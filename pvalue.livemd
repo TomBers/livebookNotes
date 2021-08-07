@@ -1,0 +1,15 @@
+# The maths behind science "p-values"
+
+## Intro
+
+One of the key tests to know if an experiment measured something real is known as a `p-value`. Often quoited along with discussions on `p-hacking`.
+
+This value is also sometimes seen with 0.05 as some sort of magic barrier for science.  This document hopes to show step by step what this means and provide examples and code to demystify this magic numbers.
+
+## What is P??
+
+Unfortunately this is not always easy, [Wikipedia state](https://en.wikipedia.org/wiki/P-value)
+
+> In null hypothesis significance testing, the p-value is the probability of obtaining test results at least as extreme as the results actually observed, under the assumption that the null hypothesis is correct.
+
+Hmmm, looks like we need to do some digging.
