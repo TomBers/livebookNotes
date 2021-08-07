@@ -2,7 +2,7 @@
 
 ## Intro
 
-One of the key tests to know if an experiment measured something real is known as a `p-value`. Often quoited along with discussions on `p-hacking`.
+One of the key tests to know if an experiment measured something real is known as a `p-value`. Often quoted along with discussions on `p-hacking`.
 
 This value is also sometimes seen with 0.05 as some sort of magic barrier for science.  This document hopes to show step by step what this means and provide examples and code to demystify this magic numbers.
 
@@ -13,3 +13,81 @@ Unfortunately this is not always easy, [Wikipedia state](https://en.wikipedia.or
 > In null hypothesis significance testing, the p-value is the probability of obtaining test results at least as extreme as the results actually observed, under the assumption that the null hypothesis is correct.
 
 Hmmm, looks like we need to do some digging.
+
+## null hypothesis
+
+A null hypothesis states that there is no relationship between two sets of observations.
+
+[Some examples](https://www.thoughtco.com/null-hypothesis-examples-609097)
+
+| Question                                                                  | Null Hypothesis                                         |
+| ------------------------------------------------------------------------- | ------------------------------------------------------- |
+| Does taking aspirin every day reduce the chance of having a heart attack? | Taking aspirin daily does not affect heart attack risk. |
+| Do cats care about the color of their food?                               | Cats express no food preference based on color.         |
+
+The goal is to `reject` this assertion by showing a relationship between observations.
+
+## Showing relationships between observations.
+
+We are going to simulate some observations and see how we can compare the results of the observations to a null hypotheis to calulate the probability of an observation occuring `naturally`
+
+(for example, we could say the average height of a group of people is 180 cm but we happen to pick the 3 tallest people it will not appear that way, we want to know how likely this fluke is to occur)
+
+Example taken from [Khan Academy](https://www.khanacademy.org/math/ap-statistics/xfb5d8e68:inference-categorical-proportions/idea-significance-tests/v/estimating-p-value-from-simulation)
+
+An article said 6% of teenagers were vegetarian, but I suspect that it is actually higher.  To test the theory, a random sample of 25 teenagers was taken, and 20% were vegetarian.
+
+The question is how likely this was to happen by chance we simulate 40 samples of 25 students recording the proportion of vegetarian in each sample.
+
+```elixir
+Mix.install([
+  {:vega_lite, "~> 0.1.0"},
+  {:kino, "~> 0.2.0"}
+])
+
+alias VegaLite, as: Vl
+```
+
+```elixir
+defmodule SampleData do
+  def gen_distribution do
+    # Take 40 samples and make a random number between 0 and 0.24
+    1..40
+    |> Enum.map(fn _x -> %{"bin" => Enum.random(0..25) / 100} end)
+  end
+end
+```
+
+```elixir
+data = SampleData.gen_distribution()
+
+Vl.new(width: 400, height: 300)
+|> Vl.data_from_values(data)
+|> Vl.mark(:bar)
+|> Vl.encode_field(:x, "bin", bin: true)
+|> Vl.encode(:y, aggregate: :count)
+```
+
+So above we have a simulation of 40 surveys returning how many of 25 people surveyed were vegetarian.
+So if 0 were vegetarian it would be 0.000 on the graph and if 5 people were - it would be 20% (or 0.2)
+
+Remember our null hypotheis was that 6% were vegetarian so:
+
+$$H_0: P_{veg} = 6\% $$
+$$H_a: P_{veg} > 6\% ^{1}$$
+$$p\-value = P(P_{veg} \geq 20\% \mid H_0)$$
+
+[1] This is what is known as the alternative hypotheses and is the probability that there is a relationship.
+
+```elixir
+# IO.inspect(data)
+
+# Find the number of values > 0.2 
+
+samples_greate_than_threshold =
+  data
+  |> Enum.filter(fn x -> x["bin"] >= 0.2 end)
+  |> Enum.count()
+
+pvalue = samples_greate_than_threshold / length(data)
+```
