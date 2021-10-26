@@ -1,0 +1,5 @@
+# Information Theory
+
+## What is information theory?
+
+A very good question, I vaguely remember some equations with logs in them.  But lets see what we can pick up.
