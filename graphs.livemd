@@ -7,7 +7,7 @@ Lets draw some graphs, first setup the graphing tools.
 ```elixir
 Mix.install([
   {:vega_lite, "~> 0.1.0"},
-  {:kino, "~> 0.2.0"},
+  {:kino, "~> 0.4.1"},
   {:math, "~> 0.6.0"}
 ])
 
@@ -54,10 +54,12 @@ Vl.new(width: 400, height: 300)
 
 Lets try an input - enter a power of x and see how it graphs
 
-<!-- livebook:{"livebook_object":"cell_input","name":"pow","props":{"max":10,"min":1,"step":1},"reactive":true,"type":"range","value":"1"} -->
+```elixir
+pow_input = Kino.Input.number("pow_input")
+```
 
 ```elixir
-pow = IO.gets("pow") |> String.trim() |> String.to_integer()
+pow = Kino.Input.read(pow_input)
 
 IO.inspect("Power: #{pow}")
 
