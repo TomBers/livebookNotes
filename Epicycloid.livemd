@@ -101,7 +101,7 @@ end
 ```
 
 ```elixir
-range = Kino.Input.number("range_input", reactive: true)
+range = Kino.Input.number("range_input")
 ```
 
 ```elixir
